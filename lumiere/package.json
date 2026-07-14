@@ -1,0 +1,42 @@
+{
+  "name": "lumiere",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
+    "start": "next start",
+    "activate": "tsx scripts/activate.ts",
+    "find-demo-match": "tsx --env-file=.env.local scripts/find-demo-match.ts",
+    "setup-telegram": "tsx scripts/setup-telegram.ts"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
+    "@solana/spl-token": "^0.4.15",
+    "@solana/web3.js": "^1.98.4",
+    "@supabase/ssr": "^0.7.0",
+    "@supabase/supabase-js": "^2.110.2",
+    "axios": "^1.18.1",
+    "eventsource": "^4.1.0",
+    "next": "16.2.10",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "telegraf": "^4.16.3",
+    "three": "^0.185.1",
+    "tweetnacl": "^1.0.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/eventsource": "^1.1.15",
+    "@types/node": "^20.19.43",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/three": "^0.185.1",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.0",
+    "typescript": "^5"
+  }
+}
