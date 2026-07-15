@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getSupabaseBrowser } from '@/lib/supabase-browser'
 import { useAuthUser } from '@/lib/use-auth'
@@ -151,6 +152,10 @@ export default function AuthPage() {
               </p>
             )}
             {telegramError && <p className="text-xs text-rose-400 text-center">{telegramError}</p>}
+            <p className="text-[11px] text-gray-500 text-center leading-relaxed">
+              Telegram only shows its login button on the app&apos;s registered domain. If nothing appears above
+              (e.g. on localhost), use the Email tab.
+            </p>
           </div>
         ) : (
           <form onSubmit={emailStep === 'enter-email' ? handleSendOtp : handleVerifyOtp} className="space-y-4">
@@ -203,6 +208,16 @@ export default function AuthPage() {
             </button>
           </form>
         )}
+
+        <div className="text-center pt-2">
+          <Link
+            href="/watch?demo=true"
+            className="text-xs font-bold uppercase tracking-widest hover:underline"
+            style={{ color: '#f5c518' }}
+          >
+            Just looking? Watch the demo — no account needed →
+          </Link>
+        </div>
       </div>
     </div>
   )

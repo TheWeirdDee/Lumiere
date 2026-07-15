@@ -205,7 +205,7 @@ function WatchContent() {
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-4 border-cyan-500/20 border-t-cyan-500 animate-spin" />
           <span className="font-display uppercase tracking-wider text-sm">
-            {isDemo ? 'Initializing Simulation Replay...' : 'Connecting Live Feed...'}
+            {isDemo ? 'Loading the replay — real recorded market data...' : 'Connecting Live Feed...'}
           </span>
         </div>
       </div>

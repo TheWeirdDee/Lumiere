@@ -27,17 +27,25 @@ export async function POST(request: NextRequest) {
   }
 
   const email = `tg-${payload.id}@telegram.lumiere.internal`
+  const metadata = {
+    telegram_id: String(payload.id),
+    telegram_username: payload.username ?? null,
+    telegram_first_name: payload.first_name,
+  }
+
+  // generateLink(type: 'magiclink') requires an existing auth user — create
+  // one on first Telegram login. "already registered" on repeat logins is
+  // expected and ignored; any real failure surfaces from generateLink below.
+  await supabaseAdmin.auth.admin.createUser({
+    email,
+    email_confirm: true,
+    user_metadata: metadata,
+  })
 
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({
     type: 'magiclink',
     email,
-    options: {
-      data: {
-        telegram_id: String(payload.id),
-        telegram_username: payload.username ?? null,
-        telegram_first_name: payload.first_name,
-      },
-    },
+    options: { data: metadata },
   })
 
   if (error || !data.properties?.hashed_token) {

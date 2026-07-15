@@ -1,5 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
+
+/* Tailwind v4 generates font-sans / font-display / font-mono utilities from
+   these — declaring them on :root alone produces no utility classes, which
+   silently left every `font-display` heading in the fallback body font. */
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Space Grotesk', ui-sans-serif, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+}
 
 :root {
   --background: #030712;
@@ -7,14 +16,11 @@
   --card: rgba(17, 24, 39, 0.7);
   --border: rgba(255, 255, 255, 0.07);
   --border-glow: rgba(6, 182, 212, 0.3);
-  
+
   --accent-purple: #8b5cf6;
   --accent-cyan: #06b6d4;
   --accent-rose: #f43f5e;
   --accent-amber: #f59e0b;
-  
-  --font-sans: 'Plus Jakarta Sans', sans-serif;
-  --font-display: 'Space Grotesk', sans-serif;
 }
 
 body {
@@ -165,12 +171,86 @@ body {
   animation: diagonal-slash-kf 0.6s cubic-bezier(0.19, 1, 0.22, 1) forwards;
 }
 
-/* Landing page looping event card — pure CSS, no Three.js/animation library */
+/* ── Landing page ─────────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Looping event card — pure CSS */
 @keyframes landing-card-kf {
-  0% { transform: translateY(16px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
+  0% { transform: translateY(20px) rotate(-1.2deg); opacity: 0; }
+  100% { transform: translateY(0) rotate(0deg); opacity: 1; }
 }
 
 .landing-card {
-  animation: landing-card-kf 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: landing-card-kf 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Hero entrance — staggered rise */
+@keyframes hero-rise-kf {
+  from { opacity: 0; transform: translateY(26px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.hero-rise {
+  animation: hero-rise-kf 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Floodlight beams — slow breathing */
+@keyframes floodlight-kf {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+
+.floodlight {
+  animation: floodlight-kf 7s ease-in-out infinite;
+}
+
+/* Stadium camera flashes */
+@keyframes twinkle-kf {
+  0%, 100% { opacity: 0.05; transform: scale(0.8); }
+  50% { opacity: 0.9; transform: scale(1.15); }
+}
+
+.twinkle {
+  animation: twinkle-kf 3.2s ease-in-out infinite;
+}
+
+/* Marquee ticker */
+@keyframes marquee-kf {
+  to { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  animation: marquee-kf 45s linear infinite;
+  will-change: transform;
+}
+
+/* Scroll-reveal (toggled by IntersectionObserver on the landing page) */
+.reveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Scroll hint chevron */
+@keyframes bounce-down-kf {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  50% { transform: translateY(8px); opacity: 1; }
+}
+
+.bounce-down {
+  animation: bounce-down-kf 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .hero-rise, .landing-card { animation-duration: 0.01s; }
+  .floodlight, .twinkle, .marquee-track, .bounce-down { animation: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
 }

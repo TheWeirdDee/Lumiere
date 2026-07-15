@@ -150,7 +150,7 @@ export default function ReplayPage({ params }: PageProps) {
       <div className="min-h-screen flex items-center justify-center text-gray-400">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 rounded-full border-4 border-cyan-500/20 border-t-cyan-500 animate-spin" />
-          <span className="font-display uppercase tracking-wider text-sm">Initializing Simulation Engine...</span>
+          <span className="font-display uppercase tracking-wider text-sm">Loading the replay — real recorded market data...</span>
         </div>
       </div>
     )
@@ -181,7 +181,7 @@ export default function ReplayPage({ params }: PageProps) {
           ← Back to matches
         </Link>
         <span className="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-400 uppercase tracking-widest">
-          ⚙️ Replay Simulation Mode
+          Replay — recorded market data
         </span>
       </div>
 
@@ -235,9 +235,10 @@ export default function ReplayPage({ params }: PageProps) {
             awayProb={awayProb}
           />
           <div className="glass-panel p-5 rounded-xl border border-white/5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-purple-400 mb-2 font-display">Simulation info</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-purple-400 mb-2 font-display">About this replay</h4>
             <p className="text-xs text-gray-400 leading-relaxed">
-              Playback is re-run chronologically at the chosen speed. Use the slider to seek anywhere inside the 120-minute timeline. As events unfold, the shock detector runs in real-time.
+              Nothing here is invented — this is the match&apos;s real recorded market data, played back chronologically
+              at the chosen speed. Use the slider to seek anywhere in the timeline; shocks fire exactly where they fired live.
             </p>
           </div>
         </div>

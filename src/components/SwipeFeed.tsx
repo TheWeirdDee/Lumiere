@@ -1,7 +1,7 @@
 // src/components/SwipeFeed.tsx
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import type { Chain, Fixture, MatchEvent, MatchState } from '@/lib/txline/types'
 import type { OddsShock } from '@/types'
@@ -46,6 +46,8 @@ const getTeamColor = (teamName: string) => {
 export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresState }: SwipeFeedProps) {
   const [feedItems, setFeedItems] = useState<FeedItem[]>([])
   const [addedCodes, setAddedCodes] = useState<Record<string, boolean>>({})
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const prevCountRef = useRef(0)
 
   useEffect(() => {
     const items: FeedItem[] = []
@@ -104,6 +106,16 @@ export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresSt
     setFeedItems(items)
   }, [matchEvents, shocks, scoresState, activeFixture])
 
+  // A new card (goal, shock, red card...) arriving should actually be seen —
+  // "cards slide in from below" only means something if the viewport moves
+  // to reveal them, not just that they exist off-screen in the DOM.
+  useEffect(() => {
+    if (feedItems.length > prevCountRef.current) {
+      scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
+    }
+    prevCountRef.current = feedItems.length
+  }, [feedItems.length])
+
   const handleAddCode = (id: string) => {
     setAddedCodes((prev) => ({ ...prev, [id]: true }))
     setTimeout(() => {
@@ -123,7 +135,7 @@ export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresSt
   }
 
   return (
-    <div className="w-full h-full overflow-y-scroll snap-y snap-mandatory scrollbar-none scroll-smooth bg-black">
+    <div ref={scrollRef} className="w-full h-full overflow-y-scroll snap-y snap-mandatory scrollbar-none scroll-smooth bg-black">
       {feedItems.map((item) => (
         <div
           key={item.id}
@@ -186,11 +198,11 @@ function GoalCard({ event, activeFixture, scoresState }: GoalCardProps) {
         </p>
 
         <div className="mt-8 py-3 px-6 rounded-2xl bg-white/5 border border-white/5 flex gap-4 items-center justify-center font-mono text-lg font-bold tracking-widest text-white shadow-inner w-full">
-          <span className="truncate flex-1 text-right">{activeFixture?.homeTeam}</span>
-          <span className="text-cyan-400 bg-black/40 px-3 py-1 rounded-lg border border-white/5">
+          <span className="truncate flex-1 min-w-0 text-right">{activeFixture?.homeTeam}</span>
+          <span className="shrink-0 text-cyan-400 bg-black/40 px-3 py-1 rounded-lg border border-white/5">
             {scoresState?.homeScore ?? 0} - {scoresState?.awayScore ?? 0}
           </span>
-          <span className="truncate flex-1 text-left">{activeFixture?.awayTeam}</span>
+          <span className="truncate flex-1 min-w-0 text-left">{activeFixture?.awayTeam}</span>
         </div>
       </div>
     </div>
