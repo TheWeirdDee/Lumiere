@@ -92,7 +92,14 @@ export default function AuthPage() {
     setEmailError(null)
     setEmailBusy(true)
     const supabase = getSupabaseBrowser()
-    const { error } = await supabase.auth.signInWithOtp({ email })
+    // Supabase's default (non-custom-SMTP) email contains a sign-in LINK, not
+    // a code — send the user to /auth/callback, which exchanges it for a
+    // session and routes to /watch or /auth/username. The code input stays as
+    // a fallback for projects with custom SMTP templates that include a token.
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    })
     setEmailBusy(false)
     if (error) {
       setEmailError(error.message)
@@ -173,27 +180,34 @@ export default function AuthPage() {
                 />
               </div>
             ) : (
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
-                  6-digit code sent to {email}
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  required
-                  autoFocus
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.trim())}
-                  placeholder="123456"
-                  className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm font-mono tracking-[0.3em] text-center rounded-xl px-4 py-3.5 focus:outline-none focus:border-cyan-500 transition-all duration-300"
-                />
-                <button
-                  type="button"
-                  onClick={() => setEmailStep('enter-email')}
-                  className="mt-2 text-[10px] text-gray-500 hover:text-white transition-colors"
-                >
-                  ← Use a different email
-                </button>
+              <div className="space-y-4">
+                <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-center">
+                  <p className="text-sm text-gray-200 font-semibold">Check your inbox</p>
+                  <p className="mt-1.5 text-xs text-gray-400 leading-relaxed">
+                    We sent a sign-in link to <span className="text-white">{email}</span>. Open it{' '}
+                    <span className="text-gray-200">in this browser</span> and you&apos;ll be signed in automatically.
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
+                    Got a 6-digit code instead? Enter it here
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.trim())}
+                    placeholder="123456"
+                    className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm font-mono tracking-[0.3em] text-center rounded-xl px-4 py-3.5 focus:outline-none focus:border-cyan-500 transition-all duration-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setEmailStep('enter-email')}
+                    className="mt-2 text-[10px] text-gray-500 hover:text-white transition-colors"
+                  >
+                    ← Use a different email
+                  </button>
+                </div>
               </div>
             )}
 
@@ -201,10 +215,10 @@ export default function AuthPage() {
 
             <button
               type="submit"
-              disabled={emailBusy}
+              disabled={emailBusy || (emailStep === 'enter-otp' && otp.length < 6)}
               className="w-full py-3.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 disabled:opacity-40 text-black font-bold text-xs uppercase tracking-widest transition-all duration-200"
             >
-              {emailBusy ? 'Please wait...' : emailStep === 'enter-email' ? 'Send code' : 'Verify & continue'}
+              {emailBusy ? 'Please wait...' : emailStep === 'enter-email' ? 'Send sign-in link' : 'Verify code & continue'}
             </button>
           </form>
         )}
