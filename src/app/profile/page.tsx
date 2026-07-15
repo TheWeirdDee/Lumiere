@@ -47,7 +47,7 @@ export default function ProfilePage() {
   if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#080808] text-gray-400">
-        <div className="w-8 h-8 rounded-full border-2 border-cyan-500/20 border-t-cyan-500 animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-[#f5c518]/25 border-t-[#f5c518] animate-spin" />
       </div>
     )
   }
@@ -81,7 +81,7 @@ export default function ProfilePage() {
         )}
 
         <div className="space-y-2">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-cyan-400">Your codes</h3>
+          <h3 className="text-xs font-bold uppercase tracking-widest text-[#f5c518]">Your codes</h3>
           {codes.length === 0 ? (
             <p className="text-sm text-gray-500 text-center py-8">No codes yet — build one from a live shock alert.</p>
           ) : (

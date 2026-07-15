@@ -8,6 +8,7 @@ import type { OddsShock } from '@/types'
 import AmbientOverlay from '@/components/AmbientOverlay'
 import Link from 'next/link'
 import SwipeFeed from '@/components/SwipeFeed'
+import MatchPicker from '@/components/MatchPicker'
 import { useAuthUser } from '@/lib/use-auth'
 
 type AppMode = 'following' | 'watching'
@@ -203,7 +204,7 @@ function WatchContent() {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-400">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full border-4 border-cyan-500/20 border-t-cyan-500 animate-spin" />
+          <div className="w-12 h-12 rounded-full border-4 border-[#f5c518]/25 border-t-[#f5c518] animate-spin" />
           <span className="font-display uppercase tracking-wider text-sm">
             {isDemo ? 'Loading the replay — real recorded market data...' : 'Connecting Live Feed...'}
           </span>
@@ -235,7 +236,7 @@ function WatchContent() {
         <button
           onClick={() => handleModeChange('following')}
           className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-            mode === 'following' ? 'bg-cyan-500 text-black shadow-md' : 'text-gray-400 hover:text-white'
+            mode === 'following' ? 'bg-[#f5c518] text-black shadow-md' : 'text-gray-400 hover:text-white'
           }`}
         >
           Following
@@ -243,27 +244,20 @@ function WatchContent() {
         <button
           onClick={() => handleModeChange('watching')}
           className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-            mode === 'watching' ? 'bg-cyan-500 text-black shadow-md' : 'text-gray-400 hover:text-white'
+            mode === 'watching' ? 'bg-[#f5c518] text-black shadow-md' : 'text-gray-400 hover:text-white'
           }`}
         >
           Watching
         </button>
         {!isDemo && fixtures.length > 1 && (
-          <select
-            value={selectedMatchId ?? ''}
-            onChange={(e) => {
-              const f = fixtures.find((x) => x.matchId === e.target.value)
-              if (f) handleSelectMatch(f)
-            }}
-            className="ml-1 bg-transparent text-[10px] text-gray-400 border-l border-white/10 pl-2 py-1.5 focus:outline-none max-w-[140px]"
-          >
-            {fixtures.map((f) => (
-              <option key={f.matchId} value={f.matchId} className="bg-gray-950 text-white">
-                {f.homeTeam} v {f.awayTeam}
-              </option>
-            ))}
-          </select>
+          <MatchPicker fixtures={fixtures} selectedMatchId={selectedMatchId} onSelect={handleSelectMatch} />
         )}
+        <Link
+          href="/guide"
+          className="pl-3 pr-1 py-1.5 border-l border-white/10 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-[#f5c518] transition-colors"
+        >
+          Guide
+        </Link>
       </div>
 
       {mode === 'following' ? (
@@ -275,6 +269,7 @@ function WatchContent() {
           homeProb={homeProb}
           drawProb={drawProb}
           awayProb={awayProb}
+          hasOdds={!!currentOdds}
           activeShock={activeShock}
           onDismissShock={() => setActiveShock(null)}
         />

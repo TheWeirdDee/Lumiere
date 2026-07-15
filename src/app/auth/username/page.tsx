@@ -57,7 +57,7 @@ export default function UsernamePage() {
   if (loading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#080808] text-gray-400">
-        <div className="w-8 h-8 rounded-full border-2 border-cyan-500/20 border-t-cyan-500 animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-[#f5c518]/25 border-t-[#f5c518] animate-spin" />
       </div>
     )
   }
@@ -84,7 +84,7 @@ export default function UsernamePage() {
                 setError(null)
               }}
               placeholder="username"
-              className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm font-semibold rounded-xl pl-8 pr-4 py-3.5 focus:outline-none focus:border-cyan-500 transition-all duration-300 lowercase"
+              className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm font-semibold rounded-xl pl-8 pr-4 py-3.5 focus:outline-none focus:border-[#f5c518] transition-all duration-300 lowercase"
             />
           </div>
           <p className="mt-2 text-[10px] text-gray-500 font-mono">3-20 characters, letters/numbers/underscores only.</p>
@@ -94,7 +94,7 @@ export default function UsernamePage() {
         <button
           type="submit"
           disabled={!isValid || submitting}
-          className="w-full py-3.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold text-xs uppercase tracking-widest transition-all duration-200"
+          className="w-full py-3.5 rounded-xl bg-[#f5c518] hover:bg-[#e2b514] disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold text-xs uppercase tracking-widest transition-all duration-200"
         >
           {submitting ? 'Saving...' : 'Continue'}
         </button>

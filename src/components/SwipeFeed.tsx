@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import type { Chain, Fixture, MatchEvent, MatchState } from '@/lib/txline/types'
 import type { OddsShock } from '@/types'
+import TeamFlag from './TeamFlag'
 
 // Lazy-load the Three.js GoalAnimation overlay to avoid blocking initial load
 const GoalAnimation = dynamic(() => import('./GoalAnimation'), { ssr: false })
@@ -124,12 +125,58 @@ export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresSt
   }
 
   if (feedItems.length === 0) {
+    const phase = activeFixture?.phase
+    const upcoming = phase === 'NS' || phase === 'P'
+    const kickoffLabel = activeFixture?.kickoff
+      ? new Date(activeFixture.kickoff).toLocaleString([], {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : null
+
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-[#080808] text-center select-none">
+      <div className="w-full h-full flex flex-col items-center justify-center bg-[#080808] text-center select-none px-6">
         <span className="text-4xl md:text-6xl font-black font-display tracking-widest text-white uppercase animate-pulse">
           LUMIÈRE
         </span>
-        <p className="mt-4 text-xs font-mono uppercase tracking-widest text-gray-500">Waiting for kickoff...</p>
+
+        {activeFixture && (
+          <div className="mt-8 flex items-center gap-3">
+            <TeamFlag team={activeFixture.homeTeam} size={30} />
+            <span className="text-sm font-bold text-white font-display uppercase tracking-wider">
+              {activeFixture.homeTeam} <span className="text-gray-500 mx-1">v</span> {activeFixture.awayTeam}
+            </span>
+            <TeamFlag team={activeFixture.awayTeam} size={30} />
+          </div>
+        )}
+
+        {kickoffLabel && (
+          <p className="mt-2 text-[11px] font-mono uppercase tracking-widest text-gray-500" suppressHydrationWarning>
+            {upcoming ? `Kickoff ${kickoffLabel}` : kickoffLabel}
+          </p>
+        )}
+
+        <div className="mt-8 max-w-sm rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-left">
+          <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#f5c518' }}>
+            {upcoming ? 'Nothing yet — that’s normal' : 'Connected — waiting for a big moment'}
+          </p>
+          <p className="text-xs text-gray-400 leading-relaxed">
+            {upcoming
+              ? 'This feed fills up once the match kicks off. Every goal, red card and sudden odds move becomes a full-screen card here — you swipe through the drama like a story.'
+              : 'Cards appear only when something big happens: a goal, a red card, or the odds moving sharply. Quiet minutes in the match mean a quiet feed — the moment something breaks, it lands here first.'}
+          </p>
+          <div className="mt-4 flex items-center gap-4">
+            <a href="/guide" className="text-[11px] font-bold uppercase tracking-widest hover:underline" style={{ color: '#f5c518' }}>
+              How this works →
+            </a>
+            <a href="/watch?demo=true" className="text-[11px] font-bold uppercase tracking-widest text-gray-400 hover:text-white transition-colors">
+              Watch a replay instead
+            </a>
+          </div>
+        </div>
       </div>
     )
   }
@@ -184,9 +231,9 @@ function GoalCard({ event, activeFixture, scoresState }: GoalCardProps) {
         className="w-full max-w-lg p-8 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden transition-all duration-500 flex flex-col items-center"
         style={{ background: `linear-gradient(135deg, rgba(15,15,15,0.95) 0%, ${teamColor}15 100%)` }}
       >
-        <div className="text-xs uppercase tracking-widest font-mono text-cyan-400 mb-6">Match Incident</div>
+        <div className="text-xs uppercase tracking-widest font-mono text-[#f5c518] mb-6">Match Incident</div>
 
-        <div className="w-20 h-20 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-6">
+        <div className="w-20 h-20 rounded-full bg-[#f5c518]/10 border border-[#f5c518]/25 flex items-center justify-center text-[#f5c518] mb-6">
           <svg className="w-10 h-10 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m11.314 11.314l.707.707M12 5a7 7 0 100 14 7 7 0 000-14z" />
           </svg>
@@ -197,12 +244,18 @@ function GoalCard({ event, activeFixture, scoresState }: GoalCardProps) {
           {scoringTeam} found the net in the {event.minute}&apos; minute!
         </p>
 
-        <div className="mt-8 py-3 px-6 rounded-2xl bg-white/5 border border-white/5 flex gap-4 items-center justify-center font-mono text-lg font-bold tracking-widest text-white shadow-inner w-full">
-          <span className="truncate flex-1 min-w-0 text-right">{activeFixture?.homeTeam}</span>
-          <span className="shrink-0 text-cyan-400 bg-black/40 px-3 py-1 rounded-lg border border-white/5">
+        <div className="mt-8 py-3 px-4 rounded-2xl bg-white/5 border border-white/5 flex gap-3 items-center justify-center font-mono text-lg font-bold tracking-widest text-white shadow-inner w-full">
+          <span className="flex items-center gap-2 flex-1 min-w-0 justify-end">
+            {activeFixture && <TeamFlag team={activeFixture.homeTeam} size={22} />}
+            <span className="truncate">{activeFixture?.homeTeam}</span>
+          </span>
+          <span className="shrink-0 text-[#f5c518] bg-black/40 px-3 py-1 rounded-lg border border-white/5">
             {scoresState?.homeScore ?? 0} - {scoresState?.awayScore ?? 0}
           </span>
-          <span className="truncate flex-1 min-w-0 text-left">{activeFixture?.awayTeam}</span>
+          <span className="flex items-center gap-2 flex-1 min-w-0">
+            <span className="truncate">{activeFixture?.awayTeam}</span>
+            {activeFixture && <TeamFlag team={activeFixture.awayTeam} size={22} />}
+          </span>
         </div>
       </div>
     </div>
@@ -255,9 +308,9 @@ function ShockCard({ shock, isAdded, onAdd }: ShockCardProps) {
   return (
     <div className="w-full h-full flex items-center justify-center bg-black/20">
       <div className="w-full max-w-xl p-8 rounded-3xl border border-white/5 bg-zinc-950/90 backdrop-blur-md shadow-2xl relative flex flex-col items-center">
-        <div className="text-xs uppercase tracking-widest font-mono text-cyan-400 mb-6">Market Intelligence</div>
+        <div className="text-xs uppercase tracking-widest font-mono text-[#f5c518] mb-6">Market Intelligence</div>
 
-        <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-6">
+        <div className="w-16 h-16 rounded-2xl bg-[#f5c518]/10 border border-[#f5c518]/25 flex items-center justify-center text-[#f5c518] mb-6">
           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
           </svg>
@@ -266,7 +319,7 @@ function ShockCard({ shock, isAdded, onAdd }: ShockCardProps) {
         <h2 className="text-3xl font-black font-display uppercase tracking-wide text-white text-center">Odds Shift on {team}</h2>
 
         <div className="my-6 py-4 px-6 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center justify-center min-w-[200px]">
-          <span className="text-5xl font-black font-mono tracking-tight text-cyan-400">
+          <span className="text-5xl font-black font-mono tracking-tight text-[#f5c518]">
             {shock.direction === 'up' ? '+' : '-'}
             {Math.round(shock.delta * 100)}%
           </span>
@@ -280,7 +333,7 @@ function ShockCard({ shock, isAdded, onAdd }: ShockCardProps) {
         </div>
 
         <div className="w-full bg-zinc-900 rounded-full h-3 mb-4 overflow-hidden flex">
-          <div className="bg-cyan-500 h-full transition-all duration-500" style={{ width: `${Math.round(shock.preProb * 100)}%` }} />
+          <div className="bg-[#f5c518] h-full transition-all duration-500" style={{ width: `${Math.round(shock.preProb * 100)}%` }} />
           <div className="bg-white/20 h-full transition-all duration-500" style={{ width: `${100 - Math.round(shock.preProb * 100)}%` }} />
         </div>
         <div className="flex justify-between text-[10px] text-gray-500 font-mono mb-8 w-full">
@@ -292,7 +345,7 @@ function ShockCard({ shock, isAdded, onAdd }: ShockCardProps) {
           href={`/build?${params.toString()}`}
           onClick={onAdd}
           className={`w-full py-3.5 px-6 rounded-full font-display font-bold uppercase tracking-wider text-xs transition-all duration-200 text-center ${
-            isAdded ? 'bg-emerald-500 text-black shadow-md' : 'bg-cyan-500 hover:bg-cyan-600 text-black shadow-lg active:scale-98'
+            isAdded ? 'bg-emerald-500 text-black shadow-md' : 'bg-[#f5c518] hover:bg-[#e2b514] text-black shadow-lg active:scale-98'
           }`}
         >
           {isAdded ? '✓ Opening code builder…' : 'Act on this →'}

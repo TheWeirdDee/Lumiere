@@ -58,7 +58,7 @@ export default function ReplayControls({
           max={maxVal}
           value={currentVal}
           onChange={handleSliderChange}
-          className="w-full h-1.5 rounded-lg bg-gray-800 accent-cyan-500 cursor-pointer outline-none"
+          className="w-full h-1.5 rounded-lg bg-gray-800 accent-[#f5c518] cursor-pointer outline-none"
         />
       </div>
 
@@ -69,8 +69,8 @@ export default function ReplayControls({
           onClick={onPlayPause}
           className={`w-full sm:w-auto px-6 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
             isPlaying 
-              ? 'bg-rose-500 hover:bg-rose-600 text-white glow-rose' 
-              : 'bg-cyan-500 hover:bg-cyan-600 text-white glow-cyan'
+              ? 'bg-rose-500 hover:bg-rose-600 text-white glow-silver' 
+              : 'bg-[#f5c518] hover:bg-[#e2b514] text-white glow-gold'
           }`}
         >
           {isPlaying ? '⏸ Pause Replay' : '▶ Play Replay'}
@@ -86,7 +86,7 @@ export default function ReplayControls({
                 onClick={() => onChangeSpeed(s)}
                 className={`px-3 py-1.5 text-xs font-mono transition-colors ${
                   speed === s 
-                    ? 'bg-cyan-500 text-white font-bold' 
+                    ? 'bg-[#f5c518] text-white font-bold' 
                     : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
               >

@@ -30,7 +30,7 @@ export default function ProbabilityBar({ homeTeam, awayTeam, homeProb, drawProb,
         {homePct > 0 && (
           <div 
             style={{ width: `${homePct}%` }}
-            className="h-full bg-gradient-to-r from-cyan-500 to-indigo-500 transition-all duration-500 relative"
+            className="h-full bg-gradient-to-r from-[#f5c518] to-[#ffe27a] transition-all duration-500 relative"
           />
         )}
         {drawPct > 0 && (
@@ -40,9 +40,9 @@ export default function ProbabilityBar({ homeTeam, awayTeam, homeProb, drawProb,
           />
         )}
         {awayPct > 0 && (
-          <div 
+          <div
             style={{ width: `${awayPct}%` }}
-            className="h-full bg-gradient-to-r from-purple-500 to-rose-500 transition-all duration-500"
+            className="h-full bg-gradient-to-r from-[#9aa2ad] to-[#d7dce2] transition-all duration-500"
           />
         )}
       </div>
@@ -51,7 +51,7 @@ export default function ProbabilityBar({ homeTeam, awayTeam, homeProb, drawProb,
       <div className="grid grid-cols-3 gap-4 pt-2">
         {/* Home Team */}
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-3 h-3 rounded-full bg-cyan-500 flex-shrink-0 glow-cyan" />
+          <div className="w-3 h-3 rounded-full bg-[#f5c518] flex-shrink-0 glow-gold" />
           <div className="min-w-0">
             <div className="text-[10px] text-gray-400 font-semibold truncate font-display">{homeTeam}</div>
             <div className="text-sm font-bold text-white">{Math.round(homePct)}%</div>
@@ -69,7 +69,7 @@ export default function ProbabilityBar({ homeTeam, awayTeam, homeProb, drawProb,
 
         {/* Away Team */}
         <div className="flex items-center gap-2.5 justify-end text-right min-w-0">
-          <div className="w-3 h-3 rounded-full bg-purple-500 flex-shrink-0 glow-rose" />
+          <div className="w-3 h-3 rounded-full bg-[#c8ccd2] flex-shrink-0 glow-silver" />
           <div className="min-w-0">
             <div className="text-[10px] text-gray-400 font-semibold truncate font-display">{awayTeam}</div>
             <div className="text-sm font-bold text-white">{Math.round(awayPct)}%</div>

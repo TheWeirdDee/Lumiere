@@ -238,15 +238,15 @@ export default function GoalAnimation({
 
         {showScoreFlip && (
           <div className="mt-12 flex gap-6 items-center justify-center select-none" style={{ perspective: '600px' }}>
-            <div className="relative w-24 h-32 md:w-28 md:h-36 bg-zinc-950 border border-white/10 rounded-2xl flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.8)] shadow-cyan-500/5 animate-flip">
-              <span className="text-6xl md:text-7xl font-black font-mono text-cyan-400">{homeScore}</span>
+            <div className="relative w-24 h-32 md:w-28 md:h-36 bg-zinc-950 border border-white/10 rounded-2xl flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.8)] shadow-[#f5c518]/10 animate-flip">
+              <span className="text-6xl md:text-7xl font-black font-mono text-[#f5c518]">{homeScore}</span>
               <div className="absolute left-0 right-0 top-1/2 h-[1px] bg-black/80" />
             </div>
 
             <span className="text-4xl font-black font-mono text-zinc-600">-</span>
 
-            <div className="relative w-24 h-32 md:w-28 md:h-36 bg-zinc-950 border border-white/10 rounded-2xl flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.8)] shadow-cyan-500/5 animate-flip">
-              <span className="text-6xl md:text-7xl font-black font-mono text-cyan-400">{awayScore}</span>
+            <div className="relative w-24 h-32 md:w-28 md:h-36 bg-zinc-950 border border-white/10 rounded-2xl flex items-center justify-center shadow-[0_10px_30px_rgba(0,0,0,0.8)] shadow-[#f5c518]/10 animate-flip">
+              <span className="text-6xl md:text-7xl font-black font-mono text-[#f5c518]">{awayScore}</span>
               <div className="absolute left-0 right-0 top-1/2 h-[1px] bg-black/80" />
             </div>
           </div>

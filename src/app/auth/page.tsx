@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getSupabaseBrowser } from '@/lib/supabase-browser'
 import { useAuthUser } from '@/lib/use-auth'
+import { LogoMark } from '@/components/Logo'
 import type { TelegramLoginPayload } from '@/lib/telegram-auth'
 
 declare global {
@@ -27,7 +28,6 @@ export default function AuthPage() {
 
   const [emailStep, setEmailStep] = useState<EmailStep>('enter-email')
   const [email, setEmail] = useState('')
-  const [otp, setOtp] = useState('')
   const [emailError, setEmailError] = useState<string | null>(null)
   const [emailBusy, setEmailBusy] = useState(false)
 
@@ -108,24 +108,13 @@ export default function AuthPage() {
     setEmailStep('enter-otp')
   }
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setEmailError(null)
-    setEmailBusy(true)
-    const supabase = getSupabaseBrowser()
-    const { data, error } = await supabase.auth.verifyOtp({ email, token: otp, type: 'email' })
-    setEmailBusy(false)
-    if (error || !data.session) {
-      setEmailError(error?.message || 'Invalid code')
-      return
-    }
-    await completeLogin(data.session.user.id)
-  }
-
   return (
     <div className="min-h-screen bg-[#080808] flex items-center justify-center px-6">
       <div className="w-full max-w-md space-y-6">
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-3">
+          <Link href="/" className="inline-block">
+            <LogoMark size={44} />
+          </Link>
           <h1 className="text-2xl font-black font-display uppercase tracking-wider text-white">Sign in to LUMIÈRE</h1>
           <p className="text-xs text-gray-400">Choose your login method.</p>
         </div>
@@ -134,7 +123,7 @@ export default function AuthPage() {
           <button
             onClick={() => setTab('telegram')}
             className={`flex-1 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-              tab === 'telegram' ? 'bg-cyan-500 text-black' : 'text-gray-400 hover:text-white'
+              tab === 'telegram' ? 'bg-[#f5c518] text-black' : 'text-gray-400 hover:text-white'
             }`}
           >
             Telegram
@@ -142,7 +131,7 @@ export default function AuthPage() {
           <button
             onClick={() => setTab('email')}
             className={`flex-1 py-2 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
-              tab === 'email' ? 'bg-cyan-500 text-black' : 'text-gray-400 hover:text-white'
+              tab === 'email' ? 'bg-[#f5c518] text-black' : 'text-gray-400 hover:text-white'
             }`}
           >
             Email
@@ -164,63 +153,61 @@ export default function AuthPage() {
               (e.g. on localhost), use the Email tab.
             </p>
           </div>
-        ) : (
-          <form onSubmit={emailStep === 'enter-email' ? handleSendOtp : handleVerifyOtp} className="space-y-4">
-            {emailStep === 'enter-email' ? (
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Email address</label>
-                <input
-                  type="email"
-                  required
-                  autoFocus
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@example.com"
-                  className="w-full bg-[#0a0a0a] border border-white/10 text-white text-xs font-medium rounded-xl px-4 py-3.5 focus:outline-none focus:border-cyan-500 transition-all duration-300"
-                />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-center">
-                  <p className="text-sm text-gray-200 font-semibold">Check your inbox</p>
-                  <p className="mt-1.5 text-xs text-gray-400 leading-relaxed">
-                    We sent a sign-in link to <span className="text-white">{email}</span>. Open it{' '}
-                    <span className="text-gray-200">in this browser</span> and you&apos;ll be signed in automatically.
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">
-                    Got a 6-digit code instead? Enter it here
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.trim())}
-                    placeholder="123456"
-                    className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm font-mono tracking-[0.3em] text-center rounded-xl px-4 py-3.5 focus:outline-none focus:border-cyan-500 transition-all duration-300"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setEmailStep('enter-email')}
-                    className="mt-2 text-[10px] text-gray-500 hover:text-white transition-colors"
-                  >
-                    ← Use a different email
-                  </button>
-                </div>
-              </div>
-            )}
+        ) : emailStep === 'enter-email' ? (
+          <form onSubmit={handleSendOtp} className="space-y-4">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Email address</label>
+              <input
+                type="email"
+                required
+                autoFocus
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="email@example.com"
+                className="w-full bg-[#0a0a0a] border border-white/10 text-white text-xs font-medium rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#f5c518] transition-all duration-300"
+              />
+            </div>
 
             {emailError && <p className="text-xs text-rose-400">{emailError}</p>}
 
             <button
               type="submit"
-              disabled={emailBusy || (emailStep === 'enter-otp' && otp.length < 6)}
-              className="w-full py-3.5 rounded-xl bg-cyan-500 hover:bg-cyan-600 disabled:opacity-40 text-black font-bold text-xs uppercase tracking-widest transition-all duration-200"
+              disabled={emailBusy}
+              className="w-full py-3.5 rounded-xl bg-[#f5c518] hover:bg-[#e2b514] disabled:opacity-40 text-black font-bold text-xs uppercase tracking-widest transition-all duration-200"
             >
-              {emailBusy ? 'Please wait...' : emailStep === 'enter-email' ? 'Send sign-in link' : 'Verify code & continue'}
+              {emailBusy ? 'Please wait...' : 'Send sign-in link'}
             </button>
           </form>
+        ) : (
+          <div className="space-y-4">
+            <div className="rounded-xl border px-5 py-6 text-center" style={{ borderColor: 'rgba(245,197,24,0.3)', background: 'rgba(245,197,24,0.06)' }}>
+              <p className="text-base text-white font-semibold font-display">Check your inbox</p>
+              <p className="mt-2 text-xs text-gray-300 leading-relaxed">
+                We sent a sign-in link to <span className="text-white font-semibold">{email}</span>.
+                <br />
+                Tap it in this browser and you&apos;re in — nothing to type.
+              </p>
+            </div>
+            {emailError && <p className="text-xs text-rose-400 text-center">{emailError}</p>}
+            <div className="flex items-center justify-center gap-6">
+              <button
+                type="button"
+                onClick={() => setEmailStep('enter-email')}
+                className="text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors"
+              >
+                ← Different email
+              </button>
+              <button
+                type="button"
+                disabled={emailBusy}
+                onClick={(e) => handleSendOtp(e as unknown as React.FormEvent)}
+                className="text-[10px] font-bold uppercase tracking-widest hover:underline disabled:opacity-40"
+                style={{ color: '#f5c518' }}
+              >
+                {emailBusy ? 'Sending...' : 'Resend link'}
+              </button>
+            </div>
+          </div>
         )}
 
         <div className="text-center pt-2">

@@ -30,7 +30,7 @@ export default function OddsTimeline({ updates, shocks, homeTeam, awayTeam }: Od
     <div className="glass-panel rounded-xl flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b border-white/5 bg-white/5 flex justify-between items-center">
-        <h3 className="text-sm font-semibold tracking-wider uppercase text-cyan-400 font-display">
+        <h3 className="text-sm font-semibold tracking-wider uppercase text-[#f5c518] font-display">
           📈 Real-Time Odds Intelligence
         </h3>
         <span className="text-xs text-gray-400 bg-white/5 px-2.5 py-0.5 rounded-full">

@@ -105,7 +105,7 @@ export default function WatchPage({ params }: PageProps) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-400">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full border-4 border-cyan-500/20 border-t-cyan-500 animate-spin" />
+          <div className="w-12 h-12 rounded-full border-4 border-[#f5c518]/25 border-t-[#f5c518] animate-spin" />
           <span className="font-display uppercase tracking-wider text-sm">Connecting Live Streams...</span>
         </div>
       </div>
@@ -176,7 +176,7 @@ export default function WatchPage({ params }: PageProps) {
             awayProb={awayProb}
           />
           <div className="glass-panel p-5 rounded-xl border border-white/5">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-400 mb-2 font-display">Live Coverage Info</h4>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#f5c518] mb-2 font-display">Live Coverage Info</h4>
             <p className="text-xs text-gray-400 leading-relaxed">
               Betting market chances updates are normalized directly from the mainnet feed. Shock alarms trigger if the odds swing by 15% or more in a rolling 90-second window.
             </p>

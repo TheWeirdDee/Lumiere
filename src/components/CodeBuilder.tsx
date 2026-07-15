@@ -174,14 +174,14 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
     <div className="max-w-2xl mx-auto space-y-8">
       {/* Platform for the whole code */}
       <section className="glass-panel rounded-2xl border border-white/5 p-6 space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-cyan-400">Platform</h3>
+        <h3 className="text-xs font-bold uppercase tracking-widest text-[#f5c518]">Platform</h3>
         <div className="flex flex-wrap gap-2">
           {PLATFORMS.map((p) => (
             <button
               key={p.value}
               onClick={() => setPlatform(p.value)}
               className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
-                platform === p.value ? 'bg-cyan-500 text-black' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'
+                platform === p.value ? 'bg-[#f5c518] text-black' : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'
               }`}
             >
               {p.label}
@@ -195,21 +195,21 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
             value={platformCode}
             onChange={(e) => setPlatformCode(e.target.value)}
             placeholder="e.g. XYZ123"
-            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm font-mono rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500"
+            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm font-mono rounded-xl px-4 py-3 focus:outline-none focus:border-[#f5c518]"
           />
         </div>
       </section>
 
       {/* Add a selection */}
       <section className="glass-panel rounded-2xl border border-white/5 p-6 space-y-4">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-cyan-400">Add a selection ({selections.length}/10)</h3>
+        <h3 className="text-xs font-bold uppercase tracking-widest text-[#f5c518]">Add a selection ({selections.length}/10)</h3>
 
         <div>
           <label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Match</label>
           <select
             value={matchId}
             onChange={(e) => setMatchId(e.target.value)}
-            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500"
+            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-[#f5c518]"
           >
             <option value="">Select a match</option>
             {fixtures.map((f) => (
@@ -225,7 +225,7 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
           <select
             value={selectionType}
             onChange={(e) => setSelectionType(e.target.value as SelectionType)}
-            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500"
+            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-[#f5c518]"
           >
             {SELECTION_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
@@ -244,7 +244,7 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
             value={oddsInput}
             onChange={(e) => setOddsInput(e.target.value)}
             placeholder="2.10"
-            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm font-mono rounded-xl px-4 py-3 focus:outline-none focus:border-cyan-500"
+            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm font-mono rounded-xl px-4 py-3 focus:outline-none focus:border-[#f5c518]"
           />
         </div>
 
@@ -263,7 +263,7 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
       {selections.length > 0 && (
         <section className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-cyan-400">Selections</h3>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-[#f5c518]">Selections</h3>
             <EdgeBadge edge={overallEdge} />
           </div>
           {selections.map((s, idx) => (
@@ -277,7 +277,7 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
       <button
         onClick={handleShare}
         disabled={saving || selections.length === 0}
-        className="w-full py-4 rounded-full bg-cyan-500 hover:bg-cyan-600 disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold text-sm uppercase tracking-widest transition-all"
+        className="w-full py-4 rounded-full bg-[#f5c518] hover:bg-[#e2b514] disabled:opacity-40 disabled:cursor-not-allowed text-black font-bold text-sm uppercase tracking-widest transition-all"
       >
         {saving ? 'Saving...' : 'Share to Telegram'}
       </button>

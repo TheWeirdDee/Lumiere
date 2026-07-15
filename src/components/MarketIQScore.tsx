@@ -6,7 +6,7 @@ interface MarketIQScoreProps {
 }
 
 function tierFor(score: number): { label: string; color: string } {
-  if (score >= 300) return { label: 'Elite', color: 'text-cyan-400' }
+  if (score >= 300) return { label: 'Elite', color: 'text-[#f5c518]' }
   if (score >= 150) return { label: 'Expert', color: 'text-emerald-400' }
   if (score >= 50) return { label: 'Sharp', color: 'text-amber-400' }
   return { label: 'Rookie', color: 'text-gray-400' }

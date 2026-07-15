@@ -76,7 +76,7 @@ export default function MatchList({ matches }: MatchListProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search country or teams (e.g. France, Spain)..."
-            className="w-full bg-[#0a0a0a] border border-white/10 text-white placeholder-gray-500 text-xs font-semibold uppercase tracking-wider rounded-xl px-4 py-3.5 focus:outline-none focus:border-cyan-500 transition-all duration-300"
+            className="w-full bg-[#0a0a0a] border border-white/10 text-white placeholder-gray-500 text-xs font-semibold uppercase tracking-wider rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#f5c518] transition-all duration-300"
           />
         </div>
 
@@ -86,7 +86,7 @@ export default function MatchList({ matches }: MatchListProps) {
           <select
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="bg-[#0a0a0a] border border-white/10 text-white text-xs font-semibold uppercase tracking-wider rounded-xl px-4 py-3.5 focus:outline-none focus:border-cyan-500 transition-all duration-300 w-full lg:w-44"
+            className="bg-[#0a0a0a] border border-white/10 text-white text-xs font-semibold uppercase tracking-wider rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#f5c518] transition-all duration-300 w-full lg:w-44"
           >
             <option value="">All Dates</option>
             {uniqueDates.map((d) => (
@@ -106,7 +106,7 @@ export default function MatchList({ matches }: MatchListProps) {
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border-b-2 whitespace-nowrap transition-all duration-300 ${
               activeTab === tab.id
-                ? 'border-cyan-500 text-cyan-400 font-bold'
+                ? 'border-[#f5c518] text-[#f5c518] font-bold'
                 : 'border-transparent text-gray-400 hover:text-white'
             }`}
           >

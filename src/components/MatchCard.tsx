@@ -37,9 +37,9 @@ export default function MatchCard({ match, isLive }: MatchCardProps) {
 
   return (
     <Link href={targetPath} className="block group">
-      <div className="glass-panel p-5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-cyan-500/20 transition-all duration-300 relative overflow-hidden">
+      <div className="glass-panel p-5 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] hover:border-[#f5c518]/25 transition-all duration-300 relative overflow-hidden">
         {/* Glow accent */}
-        <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/5 rounded-full blur-2xl group-hover:bg-cyan-500/10 transition-all duration-300" />
+        <div className="absolute top-0 right-0 w-24 h-24 bg-[#f5c518]/5 rounded-full blur-2xl group-hover:bg-[#f5c518]/10 transition-all duration-300" />
         
         <div className="flex justify-between items-center mb-4">
           <span className="text-xs font-mono text-gray-400" suppressHydrationWarning>
@@ -50,7 +50,7 @@ export default function MatchCard({ match, isLive }: MatchCardProps) {
               ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse'
               : statusLabel === 'Completed'
                 ? 'bg-gray-850 text-gray-400'
-                : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                : 'bg-[#f5c518]/15 text-[#f5c518] border border-[#f5c518]/30'
           }`}>
             {statusLabel}
           </span>
@@ -59,7 +59,7 @@ export default function MatchCard({ match, isLive }: MatchCardProps) {
         <div className="flex items-center justify-between gap-4">
           {/* Home Team */}
           <div className="flex-1 text-right">
-            <span className="text-sm font-semibold text-white group-hover:text-cyan-400 transition-colors font-display block truncate">
+            <span className="text-sm font-semibold text-white group-hover:text-[#f5c518] transition-colors font-display block truncate">
               {match.homeTeam}
             </span>
           </div>
@@ -79,7 +79,7 @@ export default function MatchCard({ match, isLive }: MatchCardProps) {
 
           {/* Away Team */}
           <div className="flex-1 text-left">
-            <span className="text-sm font-semibold text-white group-hover:text-cyan-400 transition-colors font-display block truncate">
+            <span className="text-sm font-semibold text-white group-hover:text-[#f5c518] transition-colors font-display block truncate">
               {match.awayTeam}
             </span>
           </div>

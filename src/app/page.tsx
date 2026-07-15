@@ -5,8 +5,15 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import type { Fixture, GamePhase } from '@/lib/txline/types'
 import TeamFlag from '@/components/TeamFlag'
+import { LogoWordmark } from '@/components/Logo'
+import Faq from '@/components/Faq'
+
+// Hero effects — client-only, loaded lazily so they never block paint.
+const LightRays = dynamic(() => import('@/components/reactbits/LightRays/LightRays'), { ssr: false })
+const BouncyBalls = dynamic(() => import('@/components/BouncyBalls'), { ssr: false })
 
 const GOLD = '#f5c518'
 
@@ -239,15 +246,15 @@ export default function HomePage() {
       {/* ── Nav ──────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 border-b border-white/5 bg-[#080808]/85 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
-          <a href="#top" className="font-display text-lg font-bold tracking-[0.25em] text-white shrink-0">
-            LUMIÈRE
+          <a href="#top" className="shrink-0">
+            <LogoWordmark size={26} textClassName="text-base" />
           </a>
-          <nav className="hidden md:flex items-center gap-7 text-[11px] font-bold uppercase tracking-widest text-gray-400">
+          <nav className="hidden md:flex items-center gap-6 text-[11px] font-bold uppercase tracking-widest text-gray-400">
             <a href="#matches" className="hover:text-white transition-colors">Matches</a>
-            <a href="#problem" className="hover:text-white transition-colors">The problem</a>
             <a href="#features" className="hover:text-white transition-colors">What you get</a>
             <a href="#how" className="hover:text-white transition-colors">How it works</a>
-            <a href="#market-iq" className="hover:text-white transition-colors">Market IQ</a>
+            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
+            <Link href="/guide" className="hover:text-white transition-colors">Guide</Link>
           </nav>
           <div className="flex items-center gap-4 shrink-0">
             <Link href="/auth" className="hidden sm:block text-[11px] font-bold uppercase tracking-widest text-gray-400 hover:text-white transition-colors">
@@ -268,6 +275,24 @@ export default function HomePage() {
       <section className="relative min-h-[92vh] flex items-center overflow-hidden">
         {/* Night sky */}
         <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 90% at 50% 0%, #0c1210 0%, #080808 55%)' }} />
+
+        {/* Volumetric light rays from the floodlights (WebGL) */}
+        <div className="absolute inset-0 pointer-events-none">
+          <LightRays
+            raysOrigin="top-center"
+            raysColor="#f5c518"
+            raysSpeed={1}
+            lightSpread={1}
+            rayLength={2}
+            pulsating={false}
+            fadeDistance={1}
+            saturation={1}
+            followMouse
+            mouseInfluence={0.1}
+            noiseAmount={0}
+            distortion={0}
+          />
+        </div>
 
         {/* Floodlight beams */}
         <div
@@ -310,6 +335,11 @@ export default function HomePage() {
             </svg>
           </div>
           <div className="absolute inset-x-0 bottom-0 h-full" style={{ background: 'linear-gradient(to top, rgba(8,8,8,0.2), #080808 96%)', opacity: 0.55 }} />
+        </div>
+
+        {/* A few match balls bouncing on the pitch */}
+        <div className="absolute bottom-0 left-0 right-0 h-[26%] pointer-events-none opacity-90">
+          <BouncyBalls />
         </div>
 
         <div className="relative max-w-6xl mx-auto px-6 py-20 grid grid-cols-1 lg:grid-cols-2 gap-14 items-center w-full">
@@ -558,7 +588,7 @@ export default function HomePage() {
               Sunday · the group chat
             </div>
             <div className="max-w-[85%] rounded-2xl rounded-tl-md bg-white/5 border border-white/5 px-4 py-3">
-              <div className="font-mono text-[10px] font-bold text-cyan-400 mb-1">@kelvin</div>
+              <div className="font-mono text-[10px] font-bold text-[#f5c518] mb-1">@kelvin</div>
               <div className="text-sm text-gray-200">SB code: 7A2K3M — five games, trust me</div>
             </div>
             <div className="max-w-[85%] rounded-2xl rounded-tl-md bg-white/5 border border-white/5 px-4 py-3">
@@ -566,7 +596,7 @@ export default function HomePage() {
               <div className="text-sm text-gray-200">last week&apos;s code lost o</div>
             </div>
             <div className="max-w-[85%] rounded-2xl rounded-tl-md bg-white/5 border border-white/5 px-4 py-3">
-              <div className="font-mono text-[10px] font-bold text-cyan-400 mb-1">@kelvin</div>
+              <div className="font-mono text-[10px] font-bold text-[#f5c518] mb-1">@kelvin</div>
               <div className="text-sm text-gray-200">this one is different, I promise</div>
             </div>
             <div className="pt-2 text-center font-mono text-[10px] uppercase tracking-widest text-gray-600">
@@ -772,6 +802,27 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── FAQ ──────────────────────────────────────────────────────── */}
+      <section id="faq" className="border-b border-white/5">
+        <div className="max-w-6xl mx-auto px-6 py-20">
+          <div className="reveal text-center max-w-2xl mx-auto mb-12">
+            <SectionLabel>FAQ</SectionLabel>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-white leading-tight">
+              Every question you were about to ask
+            </h2>
+            <p className="mt-4 text-sm text-gray-400">
+              Want the full walkthrough instead?{' '}
+              <Link href="/guide" className="hover:underline" style={{ color: GOLD }}>
+                Read the guide →
+              </Link>
+            </p>
+          </div>
+          <div className="reveal">
+            <Faq />
+          </div>
+        </div>
+      </section>
+
       {/* ── Final CTA ────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
         <div
@@ -813,13 +864,15 @@ export default function HomePage() {
       <footer className="border-t border-white/5 bg-[#050505]">
         <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left">
-            <div className="font-display text-sm font-bold tracking-[0.25em] text-white">LUMIÈRE</div>
+            <LogoWordmark size={22} textClassName="text-sm" />
             <div className="mt-2 font-mono text-[11px] text-gray-600">
               Built for the TxODDS World Cup Hackathon 2026 · Powered by TxLINE live data
             </div>
           </div>
           <div className="flex items-center flex-wrap justify-center gap-6 text-[11px] font-bold uppercase tracking-widest text-gray-400">
             <Link href="/watch?demo=true" className="hover:text-white transition-colors">Live demo</Link>
+            <Link href="/guide" className="hover:text-white transition-colors">Guide</Link>
+            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
             <a href="https://github.com/TheWeirdDee/Lumiere" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
               GitHub
             </a>

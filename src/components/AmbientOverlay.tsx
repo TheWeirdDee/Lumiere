@@ -7,6 +7,7 @@ import React, { useEffect } from 'react'
 import type { Fixture, MatchState } from '@/lib/txline/types'
 import type { OddsShock } from '@/types'
 import ProbabilityBar from './ProbabilityBar'
+import TeamFlag from './TeamFlag'
 
 interface AmbientOverlayProps {
   activeFixture: Fixture
@@ -14,6 +15,8 @@ interface AmbientOverlayProps {
   homeProb: number
   drawProb: number
   awayProb: number
+  /** false until the first live odds tick arrives — shows a plain-English hint. */
+  hasOdds: boolean
   activeShock: OddsShock | null
   onDismissShock: () => void
 }
@@ -26,6 +29,7 @@ export default function AmbientOverlay({
   homeProb,
   drawProb,
   awayProb,
+  hasOdds,
   activeShock,
   onDismissShock,
 }: AmbientOverlayProps) {
@@ -41,21 +45,28 @@ export default function AmbientOverlay({
   return (
     <div className="min-h-screen bg-[#080808] flex flex-col items-center justify-center px-6 py-24 relative overflow-hidden">
       {/* Score — always visible */}
-      <div className="glass-panel w-full max-w-lg px-4 md:px-10 py-6 rounded-3xl border border-white/5 flex items-center gap-2 md:gap-6 mb-8">
-        <span className="flex-1 min-w-0 text-base md:text-xl font-bold text-white font-display truncate text-right">
-          {activeFixture.homeTeam}
-        </span>
-        <div className="flex flex-col items-center px-2 md:px-4 shrink-0">
-          <span className="text-3xl md:text-5xl font-black font-mono tracking-widest text-white whitespace-nowrap">
-            {activeFixture.homeScore ?? 0} - {activeFixture.awayScore ?? 0}
+      <div className="glass-panel w-full max-w-lg px-4 md:px-8 py-6 rounded-3xl border border-white/5 mb-8">
+        <div className="flex items-center gap-2 md:gap-5">
+          <span className="flex-1 min-w-0 flex items-center justify-end gap-2.5">
+            <TeamFlag team={activeFixture.homeTeam} size={26} />
+            <span className="text-base md:text-xl font-bold text-white font-display truncate">{activeFixture.homeTeam}</span>
           </span>
-          {scoresState && typeof scoresState.minute === 'number' && (
-            <span className="text-xs text-amber-500 font-semibold mt-1 whitespace-nowrap">{scoresState.minute}&apos; Minute</span>
-          )}
+          <div className="flex flex-col items-center px-2 md:px-4 shrink-0">
+            <span className="text-3xl md:text-5xl font-black font-mono tracking-widest text-white whitespace-nowrap">
+              {activeFixture.homeScore ?? 0} - {activeFixture.awayScore ?? 0}
+            </span>
+            {scoresState && typeof scoresState.minute === 'number' && (
+              <span className="text-xs text-amber-500 font-semibold mt-1 whitespace-nowrap">{scoresState.minute}&apos; Minute</span>
+            )}
+          </div>
+          <span className="flex-1 min-w-0 flex items-center gap-2.5">
+            <span className="text-base md:text-xl font-bold text-white font-display truncate">{activeFixture.awayTeam}</span>
+            <TeamFlag team={activeFixture.awayTeam} size={26} />
+          </span>
         </div>
-        <span className="flex-1 min-w-0 text-base md:text-xl font-bold text-white font-display truncate text-left">
-          {activeFixture.awayTeam}
-        </span>
+        <div className="mt-3 text-center font-mono text-[10px] uppercase tracking-widest text-gray-500" suppressHydrationWarning>
+          {new Date(activeFixture.kickoff).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+        </div>
       </div>
 
       {/* Live probability bar — always visible */}
@@ -67,6 +78,15 @@ export default function AmbientOverlay({
           drawProb={drawProb}
           awayProb={awayProb}
         />
+        {!hasOdds && (
+          <p className="mt-4 text-center text-xs text-gray-500 leading-relaxed">
+            The chances bar starts moving once the market opens for this match — usually just before kickoff.
+            Big moves slide up from the bottom as alerts.{' '}
+            <a href="/guide" className="hover:underline" style={{ color: '#f5c518' }}>
+              How this works →
+            </a>
+          </p>
+        )}
       </div>
 
       {/* Tap-outside-to-dismiss backdrop, active only while a shock is showing */}
@@ -100,19 +120,19 @@ export default function AmbientOverlay({
               {activeShock.triggerMinute && <span className="text-xs text-amber-500 ml-2">({activeShock.triggerMinute}&apos;)</span>}
             </div>
             <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-white/5 border border-white/5 mb-4">
-              <div className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-rose-400 font-display">
+              <div className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#f5c518] to-rose-400 font-display">
                 {activeShock.direction === 'up' ? '+' : '-'}
                 {Math.round(activeShock.delta * 100)}%
               </div>
               <div className="text-xs text-gray-300 mt-1">Chances shift for {team}</div>
             </div>
-            <div className="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-1">AI Commentator</div>
+            <div className="text-xs font-semibold text-[#f5c518] uppercase tracking-wider mb-1">AI Commentator</div>
             <p className="text-sm italic text-gray-200 leading-relaxed font-display mb-5">
               &ldquo;{activeShock.explanation || 'Calculating commentary insight...'}&rdquo;
             </p>
             <a
               href={`/build?${buildParams?.toString()}`}
-              className="block w-full py-3 rounded-full bg-cyan-500 hover:bg-cyan-600 text-black font-display font-bold uppercase tracking-wider text-xs text-center transition-colors"
+              className="block w-full py-3 rounded-full bg-[#f5c518] hover:bg-[#e2b514] text-black font-display font-bold uppercase tracking-wider text-xs text-center transition-colors"
             >
               Act on this →
             </a>
