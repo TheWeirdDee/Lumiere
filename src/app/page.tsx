@@ -174,6 +174,16 @@ export default function HomePage() {
   const [fixtures, setFixtures] = useState<Fixture[]>([])
   const pageRef = useRef<HTMLDivElement>(null)
 
+  // A sign-in link that lands here instead of /auth/callback (e.g. Supabase
+  // falling back to the Site URL) leaves ?code= stranded — forward it so the
+  // login still completes.
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get('code')
+    if (code) {
+      window.location.replace(`/auth/callback?code=${encodeURIComponent(code)}`)
+    }
+  }, [])
+
   useEffect(() => {
     const timer = setInterval(() => setIndex((i) => (i + 1) % DEMO_CARDS.length), CYCLE_MS)
     return () => clearInterval(timer)
