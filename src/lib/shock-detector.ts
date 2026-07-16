@@ -9,10 +9,6 @@ interface OddsPoint {
   timestamp: number;
 }
 
-// Separate windows per match per team
-const homeWindows = new Map<string, OddsPoint[]>()
-const awayWindows = new Map<string, OddsPoint[]>()
-
 function checkWindow(
   windows: Map<string, OddsPoint[]>,
   matchId: string,
@@ -43,52 +39,70 @@ function checkWindow(
   }
 }
 
-export function detectShock(
-  update: OddsEvent,
-  matchState: { homeTeam: string; awayTeam: string }
-): OddsShock | null {
-  if (update.market !== '1X2_PARTICIPANT_RESULT') return null
-  
-  const now = update.timestamp
-  
-  // Check home team
-  const homeResult = checkWindow(homeWindows, update.matchId, update.homeProb, now)
-  if (homeResult) {
-    return {
-      matchId: update.matchId,
-      homeTeam: matchState.homeTeam,
-      awayTeam: matchState.awayTeam,
-      affectedTeam: 'home',
-      direction: homeResult.delta > 0 ? 'up' : 'down',
-      delta: Math.abs(homeResult.delta),
-      windowSeconds: homeResult.windowSeconds,
-      preProb: homeResult.preProb,
-      postProb: update.homeProb,
-      firedAt: now,
-    }
-  }
-  
-  // Check away team
-  const awayResult = checkWindow(awayWindows, update.matchId, update.awayProb, now)
-  if (awayResult) {
-    return {
-      matchId: update.matchId,
-      homeTeam: matchState.homeTeam,
-      awayTeam: matchState.awayTeam,
-      affectedTeam: 'away',
-      direction: awayResult.delta > 0 ? 'up' : 'down',
-      delta: Math.abs(awayResult.delta),
-      windowSeconds: awayResult.windowSeconds,
-      preProb: awayResult.preProb,
-      postProb: update.awayProb,
-      firedAt: now,
-    }
-  }
-  
-  return null
+export interface ShockDetector {
+  detect: (update: OddsEvent, matchState: { homeTeam: string; awayTeam: string }) => OddsShock | null
+  reset: (matchId: string) => void
 }
 
+/**
+ * A detector owns its rolling windows. Create one per SSE session so separate
+ * viewers and replay reconnects cannot contaminate each other's baselines.
+ */
+export function createShockDetector(): ShockDetector {
+  const homeWindows = new Map<string, OddsPoint[]>()
+  const awayWindows = new Map<string, OddsPoint[]>()
+
+  return {
+    detect(update, matchState) {
+      if (update.market !== '1X2_PARTICIPANT_RESULT') return null
+
+      const now = update.timestamp
+      const homeResult = checkWindow(homeWindows, update.matchId, update.homeProb, now)
+      if (homeResult) {
+        return {
+          matchId: update.matchId,
+          homeTeam: matchState.homeTeam,
+          awayTeam: matchState.awayTeam,
+          affectedTeam: 'home',
+          direction: homeResult.delta > 0 ? 'up' : 'down',
+          delta: Math.abs(homeResult.delta),
+          windowSeconds: homeResult.windowSeconds,
+          preProb: homeResult.preProb,
+          postProb: update.homeProb,
+          firedAt: now,
+        }
+      }
+
+      const awayResult = checkWindow(awayWindows, update.matchId, update.awayProb, now)
+      if (awayResult) {
+        return {
+          matchId: update.matchId,
+          homeTeam: matchState.homeTeam,
+          awayTeam: matchState.awayTeam,
+          affectedTeam: 'away',
+          direction: awayResult.delta > 0 ? 'up' : 'down',
+          delta: Math.abs(awayResult.delta),
+          windowSeconds: awayResult.windowSeconds,
+          preProb: awayResult.preProb,
+          postProb: update.awayProb,
+          firedAt: now,
+        }
+      }
+
+      return null
+    },
+    reset(matchId) {
+      homeWindows.delete(matchId)
+      awayWindows.delete(matchId)
+    }
+  }
+}
+
+const sharedDetector = createShockDetector()
+
+/** Backwards-compatible singleton for scripts that process one match at a time. */
+export const detectShock = sharedDetector.detect
+
 export function resetDetector(matchId: string) {
-  homeWindows.delete(matchId)
-  awayWindows.delete(matchId)
+  sharedDetector.reset(matchId)
 }

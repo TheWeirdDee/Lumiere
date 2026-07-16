@@ -232,12 +232,21 @@ export async function startReplay(
     timer = null
   }
 
+  let completed = false
+  const complete = (): void => {
+    if (completed || stopped) return
+    completed = true
+    playing = false
+    virtualTime = endAt
+    clearTimer()
+    callbacks.onComplete?.()
+  }
+
   const scheduleNext = (): void => {
     clearTimer()
     if (stopped || !playing) return
     if (index >= timeline.length) {
-      playing = false
-      virtualTime = endAt
+      complete()
       return
     }
     const nextTs = timeline[index].timestamp
@@ -263,7 +272,7 @@ export async function startReplay(
       applyEntry(timeline[index], false)
       index += 1
     }
-    virtualTime = endAt
+    complete()
   } else {
     playing = true
     wallAnchor = Date.now()

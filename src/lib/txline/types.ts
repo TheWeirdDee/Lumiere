@@ -237,6 +237,8 @@ export interface StreamCallbacks {
   onOddsEvent: (event: OddsEvent) => void
   onError: (error: Error) => void
   onReconnect: () => void
+  /** Called exactly once when a finite replay reaches its configured end. */
+  onComplete?: () => void
 }
 
 // ---------------------------------------------------------------------------

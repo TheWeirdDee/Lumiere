@@ -1,7 +1,7 @@
 // src/app/replay/[matchId]/page.tsx
 'use client'
 
-import React, { use, useEffect, useState } from 'react'
+import React, { use, useEffect, useRef, useState } from 'react'
 import type { Fixture, MatchEvent, MatchState, OddsEvent } from '@/lib/txline/types'
 import type { OddsShock } from '@/types'
 import OddsTimeline from '@/components/OddsTimeline'
@@ -10,6 +10,7 @@ import ProbabilityBar from '@/components/ProbabilityBar'
 import ReplayControls from '@/components/ReplayControls'
 import ShockAlert from '@/components/ShockAlert'
 import Link from 'next/link'
+import { isPrimaryMarket } from '@/lib/primary-market'
 
 interface PageProps {
   params: Promise<{ matchId: string }>
@@ -23,6 +24,7 @@ export default function ReplayPage({ params }: PageProps) {
   const [shocks, setShocks] = useState<OddsShock[]>([])
   const [activeShock, setActiveShock] = useState<OddsShock | null>(null)
   const [scoresState, setScoresState] = useState<MatchState | null>(null)
+  const seenOddsIds = useRef(new Set<string>())
   
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -108,6 +110,13 @@ export default function ReplayPage({ params }: PageProps) {
     source.addEventListener('odds', (e) => {
       try {
         const data = JSON.parse(e.data) as OddsEvent
+        if (!isPrimaryMarket(data)) return
+        const messageId = (data.raw as { MessageId?: unknown } | null)?.MessageId
+        const key = typeof messageId === 'string'
+          ? messageId
+          : `${data.timestamp}|${data.market}|${data.homeProb}|${data.drawProb}|${data.awayProb}`
+        if (seenOddsIds.current.has(key)) return
+        seenOddsIds.current.add(key)
         setUpdates(prev => [...prev, data])
         setCurrentTime(data.timestamp)
       } catch (err) {
@@ -122,6 +131,20 @@ export default function ReplayPage({ params }: PageProps) {
         setActiveShock(shock)
       } catch (err) {
         console.error('Failed to parse replay shock:', err)
+      }
+    })
+
+    source.addEventListener('complete', () => {
+      source.close()
+      setIsPlaying(false)
+    })
+
+    source.addEventListener('replay-error', (e) => {
+      try {
+        const data = JSON.parse(e.data) as { message?: string }
+        console.error('Replay stream error:', data.message || 'Unknown replay error')
+      } catch {
+        console.error('Replay stream error:', e.data)
       }
     })
 
@@ -140,6 +163,7 @@ export default function ReplayPage({ params }: PageProps) {
     // Reset lists for new timeline stream starting at timestamp
     setUpdates([])
     setShocks([])
+    seenOddsIds.current.clear()
     setCurrentTime(timestamp)
     setSeekTimestamp(timestamp)
     setIsPlaying(true) // Auto-resume on seek action

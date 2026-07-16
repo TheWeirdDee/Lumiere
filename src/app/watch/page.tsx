@@ -1,7 +1,7 @@
 // src/app/watch/page.tsx
 'use client'
 
-import React, { Suspense, useEffect, useState } from 'react'
+import React, { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import type { Fixture, MatchEvent, MatchState, OddsEvent } from '@/lib/txline/types'
 import type { OddsShock } from '@/types'
@@ -10,8 +10,18 @@ import Link from 'next/link'
 import SwipeFeed from '@/components/SwipeFeed'
 import MatchPicker from '@/components/MatchPicker'
 import { useAuthUser } from '@/lib/use-auth'
+import { isPrimaryMarket } from '@/lib/primary-market'
 
 type AppMode = 'following' | 'watching'
+
+const STANDARD_REPLAY_SPEED = 1
+const DEMO_REPLAY_SPEED = 5
+
+function oddsEventKey(event: OddsEvent): string {
+  const messageId = (event.raw as { MessageId?: unknown } | null)?.MessageId
+  if (typeof messageId === 'string') return messageId
+  return `${event.timestamp}|${event.market}|${event.homeProb}|${event.drawProb}|${event.awayProb}`
+}
 
 function isCompletedPhase(phase: Fixture['phase']): boolean {
   return phase === 'F' || phase === 'FET' || phase === 'FPE' || phase === 'C'
@@ -42,6 +52,7 @@ function WatchContent() {
   const [activeShock, setActiveShock] = useState<OddsShock | null>(null)
   const [scoresState, setScoresState] = useState<MatchState | null>(null)
   const [matchEvents, setMatchEvents] = useState<MatchEvent[]>([])
+  const seenOddsIds = useRef(new Set<string>())
 
   const [mode, setMode] = useState<AppMode>('following')
 
@@ -59,6 +70,7 @@ function WatchContent() {
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [streamError, setStreamError] = useState<string | null>(null)
 
   // 1. Load Fixtures List or Demo Metadata
   useEffect(() => {
@@ -118,16 +130,26 @@ function WatchContent() {
     setActiveShock(null)
     setScoresState(null)
     setMatchEvents([])
+    setStreamError(null)
+    seenOddsIds.current.clear()
 
     let scoresSource: EventSource | null = null
     let oddsSource: EventSource | null = null
 
-    const handleMatchEvent = (raw: string, applyScore: boolean) => {
+    const handleMatchEvent = (raw: string, applyScore: boolean, applyFixturePhase: boolean) => {
       const data = JSON.parse(raw) as { event: MatchEvent; state: MatchState }
+      setStreamError(null)
       setScoresState(data.state)
       if (applyScore) {
         setActiveFixture((prev) =>
-          prev ? { ...prev, homeScore: data.state.homeScore, awayScore: data.state.awayScore, phase: data.state.phase } : null
+          prev
+            ? {
+                ...prev,
+                homeScore: data.state.homeScore,
+                awayScore: data.state.awayScore,
+                phase: applyFixturePhase ? data.state.phase : prev.phase,
+              }
+            : null
         )
       }
       if (data.event) {
@@ -143,12 +165,35 @@ function WatchContent() {
       }
     }
 
+    const handleOdds = (raw: string) => {
+      const update = JSON.parse(raw) as OddsEvent
+      if (!isPrimaryMarket(update)) return
+      const key = oddsEventKey(update)
+      if (seenOddsIds.current.has(key)) return
+      seenOddsIds.current.add(key)
+      setStreamError(null)
+      setUpdates((prev) => [...prev, update])
+    }
+
     const handleShock = (raw: string) => {
       // The relay already attaches the AI explanation server-side before
       // emitting — no client-side fetch or fallback needed here.
       const shock = JSON.parse(raw) as OddsShock
-      setShocks((prev) => [...prev, shock])
+      setShocks((prev) =>
+        prev.some((item) => item.firedAt === shock.firedAt && item.affectedTeam === shock.affectedTeam)
+          ? prev
+          : [...prev, shock]
+      )
       setActiveShock(shock)
+    }
+
+    const handleStreamError = (raw: string) => {
+      try {
+        const data = JSON.parse(raw) as { message?: string }
+        setStreamError(data.message || 'The match feed reported an error and is reconnecting.')
+      } catch {
+        setStreamError('The match feed reported an error and is reconnecting.')
+      }
     }
 
     // A finished match has no live stream to listen to — auto-play its replay
@@ -156,17 +201,18 @@ function WatchContent() {
     const replayMode = isDemo || isCompletedPhase(activeFixture.phase)
 
     if (replayMode) {
-      oddsSource = new EventSource(`/api/replay?matchId=${selectedMatchId}&speed=5`)
+      const replaySpeed = isDemo ? DEMO_REPLAY_SPEED : STANDARD_REPLAY_SPEED
+      oddsSource = new EventSource(`/api/replay?matchId=${selectedMatchId}&speed=${replaySpeed}`)
       oddsSource.addEventListener('event', (e) => {
         try {
-          handleMatchEvent(e.data, true)
+          handleMatchEvent(e.data, true, false)
         } catch (err) {
           console.error('Failed to parse replay event:', err)
         }
       })
       oddsSource.addEventListener('odds', (e) => {
         try {
-          setUpdates((prev) => [...prev, JSON.parse(e.data) as OddsEvent])
+          handleOdds(e.data)
         } catch (err) {
           console.error('Failed to parse replay odds:', err)
         }
@@ -178,20 +224,22 @@ function WatchContent() {
           console.error('Failed to parse replay shock:', err)
         }
       })
+      oddsSource.addEventListener('replay-error', (e) => handleStreamError(e.data))
+      oddsSource.addEventListener('complete', () => oddsSource?.close())
     } else {
       scoresSource = new EventSource(`/api/scores-relay?matchId=${selectedMatchId}`)
       oddsSource = new EventSource(`/api/odds-relay?matchId=${selectedMatchId}`)
 
       scoresSource.addEventListener('event', (e) => {
         try {
-          handleMatchEvent(e.data, true)
+          handleMatchEvent(e.data, true, true)
         } catch (err) {
           console.error('Failed to parse live scores:', err)
         }
       })
       oddsSource.addEventListener('odds', (e) => {
         try {
-          setUpdates((prev) => [...prev, JSON.parse(e.data) as OddsEvent])
+          handleOdds(e.data)
         } catch (err) {
           console.error('Failed to parse live odds:', err)
         }
@@ -202,6 +250,12 @@ function WatchContent() {
         } catch (err) {
           console.error('Failed to parse live shock:', err)
         }
+      })
+      scoresSource.addEventListener('error', (e) => {
+        if (e instanceof MessageEvent) handleStreamError(e.data)
+      })
+      oddsSource.addEventListener('error', (e) => {
+        if (e instanceof MessageEvent) handleStreamError(e.data)
       })
     }
 
@@ -244,6 +298,8 @@ function WatchContent() {
   const homeProb = currentOdds ? currentOdds.homeProb : 0.333
   const drawProb = currentOdds ? currentOdds.drawProb : 0.333
   const awayProb = currentOdds ? currentOdds.awayProb : 0.333
+  const replayMode = isDemo || isCompletedPhase(activeFixture.phase)
+  const replaySpeed = isDemo ? DEMO_REPLAY_SPEED : STANDARD_REPLAY_SPEED
 
   return (
     <div className={`relative ${mode === 'following' ? 'h-screen w-screen bg-black overflow-hidden' : 'min-h-screen bg-[#080808] pb-16'}`}>
@@ -268,18 +324,33 @@ function WatchContent() {
         {!isDemo && fixtures.length > 1 && (
           <MatchPicker fixtures={fixtures} selectedMatchId={selectedMatchId} onSelect={handleSelectMatch} />
         )}
-        {(isDemo || isCompletedPhase(activeFixture.phase)) && (
-          <span className="ml-1 px-2 py-0.5 rounded-full font-mono text-[9px] font-bold uppercase tracking-wider bg-[#f5c518]/15 text-[#f5c518] border border-[#f5c518]/30">
-            Replay
+        {replayMode && (
+          <span
+            title="Recorded match timeline; the market opens five minutes before kickoff"
+            className="ml-1 px-2 py-0.5 rounded-full font-mono text-[9px] font-bold uppercase tracking-wider bg-[#f5c518]/15 text-[#f5c518] border border-[#f5c518]/30"
+          >
+            Replay {replaySpeed}x
           </span>
         )}
         <Link
+          href={user ? '/profile' : '/auth'}
+          className="pl-3 py-1.5 border-l border-white/10 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-[#f5c518] transition-colors"
+        >
+          {user ? 'Profile' : 'Sign in'}
+        </Link>
+        <Link
           href="/guide"
-          className="pl-3 pr-1 py-1.5 border-l border-white/10 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-[#f5c518] transition-colors"
+          className="px-1 py-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-[#f5c518] transition-colors"
         >
           Guide
         </Link>
       </div>
+
+      {streamError && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-40 max-w-md rounded-full border border-rose-500/30 bg-rose-950/90 px-4 py-2 text-center text-[11px] text-rose-200 shadow-xl">
+          {streamError}
+        </div>
+      )}
 
       {mode === 'following' ? (
         <SwipeFeed
@@ -302,6 +373,7 @@ function WatchContent() {
           updateCount={updates.length}
           activeShock={activeShock}
           onDismissShock={() => setActiveShock(null)}
+          replaySpeed={replayMode ? replaySpeed : null}
         />
       )}
     </div>

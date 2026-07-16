@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server'
 import { connectOddsStream } from '@/lib/txline/stream'
 import { getFixtureOrientation } from '@/lib/txline/snapshots'
-import { detectShock } from '@/lib/shock-detector'
+import { createShockDetector } from '@/lib/shock-detector'
+import { isPrimaryMarket } from '@/lib/primary-market'
 import { saveShock, getConfiguredGroups } from '@/lib/supabase'
 import { bot, formatShockMessage } from '@/lib/telegram-bot'
 import { generateExplanation } from '@/lib/ai-explain'
@@ -15,6 +16,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   const matchId = request.nextUrl.searchParams.get('matchId')
+  const detector = createShockDetector()
   
   const encoder = new TextEncoder()
   let disconnect: (() => void) | null = null
@@ -41,6 +43,7 @@ export async function GET(request: NextRequest) {
       disconnect = connectOddsStream({
         onOddsEvent: (event: OddsEvent) => {
           if (matchId && event.matchId !== matchId) return
+          if (!isPrimaryMarket(event)) return
           
           // Send normal odds update
           send('odds', event)
@@ -50,7 +53,7 @@ export async function GET(request: NextRequest) {
           void (async () => {
             try {
               const orientation = await getFixtureOrientation(event.matchId)
-              const shock = detectShock(event, {
+              const shock = detector.detect(event, {
                 homeTeam: orientation.homeTeam,
                 awayTeam: orientation.awayTeam,
               })
