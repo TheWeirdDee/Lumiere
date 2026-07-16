@@ -268,6 +268,11 @@ function WatchContent() {
         {!isDemo && fixtures.length > 1 && (
           <MatchPicker fixtures={fixtures} selectedMatchId={selectedMatchId} onSelect={handleSelectMatch} />
         )}
+        {(isDemo || isCompletedPhase(activeFixture.phase)) && (
+          <span className="ml-1 px-2 py-0.5 rounded-full font-mono text-[9px] font-bold uppercase tracking-wider bg-[#f5c518]/15 text-[#f5c518] border border-[#f5c518]/30">
+            Replay
+          </span>
+        )}
         <Link
           href="/guide"
           className="pl-3 pr-1 py-1.5 border-l border-white/10 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-[#f5c518] transition-colors"
@@ -277,7 +282,14 @@ function WatchContent() {
       </div>
 
       {mode === 'following' ? (
-        <SwipeFeed shocks={shocks} matchEvents={matchEvents} activeFixture={activeFixture} scoresState={scoresState} />
+        <SwipeFeed
+          shocks={shocks}
+          matchEvents={matchEvents}
+          activeFixture={activeFixture}
+          scoresState={scoresState}
+          latestOdds={currentOdds ?? null}
+          updateCount={updates.length}
+        />
       ) : (
         <AmbientOverlay
           activeFixture={activeFixture}
@@ -286,6 +298,8 @@ function WatchContent() {
           drawProb={drawProb}
           awayProb={awayProb}
           hasOdds={!!currentOdds}
+          recentUpdates={updates.slice(-5)}
+          updateCount={updates.length}
           activeShock={activeShock}
           onDismissShock={() => setActiveShock(null)}
         />

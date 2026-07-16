@@ -4,7 +4,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import type { Fixture, MatchState } from '@/lib/txline/types'
+import type { Fixture, MatchState, OddsEvent } from '@/lib/txline/types'
 import type { OddsShock } from '@/types'
 import ProbabilityBar from './ProbabilityBar'
 import TeamFlag from './TeamFlag'
@@ -17,6 +17,10 @@ interface AmbientOverlayProps {
   awayProb: number
   /** false until the first live odds tick arrives — shows a plain-English hint. */
   hasOdds: boolean
+  /** Most recent odds ticks (newest last) — rendered as the live pulse list. */
+  recentUpdates: OddsEvent[]
+  /** Total odds ticks this session. */
+  updateCount: number
   activeShock: OddsShock | null
   onDismissShock: () => void
 }
@@ -34,6 +38,8 @@ export default function AmbientOverlay({
   drawProb,
   awayProb,
   hasOdds,
+  recentUpdates,
+  updateCount,
   activeShock,
   onDismissShock,
 }: AmbientOverlayProps) {
@@ -91,6 +97,39 @@ export default function AmbientOverlay({
               How this works →
             </a>
           </p>
+        )}
+
+        {/* Live pulse — the market ticking between big moments */}
+        {hasOdds && recentUpdates.length > 0 && (
+          <div className="mt-5 glass-panel rounded-2xl border border-white/5 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-gray-500">Market pulse</span>
+              <span className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> {updateCount.toLocaleString()} updates
+              </span>
+            </div>
+            <div className="space-y-1.5">
+              {[...recentUpdates].reverse().map((u, idx) => {
+                const homeMove = Math.abs(u.deltaHome) >= Math.abs(u.deltaAway)
+                const delta = homeMove ? u.deltaHome : u.deltaAway
+                const mover = homeMove ? activeFixture.homeTeam : activeFixture.awayTeam
+                const steady = Math.abs(delta) < 0.001
+                return (
+                  <div key={`${u.timestamp}-${idx}`} className="flex items-center justify-between font-mono text-[11px]">
+                    <span className="text-gray-500" suppressHydrationWarning>
+                      {new Date(u.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </span>
+                    <span className={steady ? 'text-gray-500' : delta > 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                      {steady ? 'steady' : `${mover} ${delta > 0 ? '▲' : '▼'} ${(Math.abs(delta) * 100).toFixed(1)}%`}
+                    </span>
+                    <span className="text-gray-400">
+                      {Math.round(u.homeProb * 100)}% · {Math.round(u.drawProb * 100)}% · {Math.round(u.awayProb * 100)}%
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         )}
       </div>
 

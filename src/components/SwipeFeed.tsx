@@ -3,7 +3,7 @@
 
 import React, { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
-import type { Chain, Fixture, MatchEvent, MatchState } from '@/lib/txline/types'
+import type { Chain, Fixture, MatchEvent, MatchState, OddsEvent } from '@/lib/txline/types'
 import type { OddsShock } from '@/types'
 import TeamFlag from './TeamFlag'
 
@@ -32,6 +32,10 @@ interface SwipeFeedProps {
   matchEvents: MatchEvent[]
   activeFixture: Fixture | null
   scoresState: MatchState | null
+  /** Most recent odds tick — drives the always-alive market pulse. */
+  latestOdds: OddsEvent | null
+  /** Total odds ticks received this session — visible proof the feed is alive. */
+  updateCount: number
 }
 
 const getTeamColor = (teamName: string) => {
@@ -44,7 +48,48 @@ const getTeamColor = (teamName: string) => {
   return colors[teamName] || '#f5c518'
 }
 
-export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresState }: SwipeFeedProps) {
+/** A compact live strip: gold/gray/silver chances bar + tick counter. */
+function MarketPulse({
+  fixture,
+  odds,
+  updateCount,
+}: {
+  fixture: Fixture | null
+  odds: OddsEvent | null
+  updateCount: number
+}) {
+  if (!odds || !fixture) return null
+  const total = odds.homeProb + odds.drawProb + odds.awayProb || 1
+  const home = Math.round((odds.homeProb / total) * 100)
+  const draw = Math.round((odds.drawProb / total) * 100)
+  const away = Math.round((odds.awayProb / total) * 100)
+
+  return (
+    <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+      <div className="flex items-center justify-between mb-3">
+        <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-gray-500">Market pulse</span>
+        <span className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-emerald-400">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live
+        </span>
+      </div>
+      <div className="h-2 w-full rounded-full overflow-hidden flex bg-gray-900">
+        <div className="h-full transition-all duration-500" style={{ width: `${home}%`, background: '#f5c518' }} />
+        <div className="h-full bg-gray-700 transition-all duration-500" style={{ width: `${draw}%` }} />
+        <div className="h-full transition-all duration-500" style={{ width: `${away}%`, background: '#c8ccd2' }} />
+      </div>
+      <div className="mt-2 flex justify-between font-mono text-[10px] text-gray-400">
+        <span className="truncate max-w-[38%]">{fixture.homeTeam} {home}%</span>
+        <span>Draw {draw}%</span>
+        <span className="truncate max-w-[38%] text-right">{fixture.awayTeam} {away}%</span>
+      </div>
+      <div className="mt-2 text-center font-mono text-[10px] text-gray-600" suppressHydrationWarning>
+        {updateCount.toLocaleString()} market updates this session
+      </div>
+    </div>
+  )
+}
+
+export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresState, latestOdds, updateCount }: SwipeFeedProps) {
   const [feedItems, setFeedItems] = useState<FeedItem[]>([])
   const [addedCodes, setAddedCodes] = useState<Record<string, boolean>>({})
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -180,6 +225,11 @@ export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresSt
             </a>
           </div>
         </div>
+
+        {/* Proof of life while waiting: the market ticking in real time */}
+        <div className="mt-4 w-full flex justify-center">
+          <MarketPulse fixture={activeFixture} odds={latestOdds} updateCount={updateCount} />
+        </div>
       </div>
     )
   }
@@ -197,7 +247,9 @@ export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresSt
             <ShockCard shock={item.data} isAdded={!!addedCodes[item.id]} onAdd={() => handleAddCode(item.id)} />
           )}
           {item.type === 'corner_cluster' && <CornerClusterCard cluster={item.data} activeFixture={activeFixture} />}
-          {item.type === 'possession' && <PossessionCard possession={item.data} activeFixture={activeFixture} />}
+          {item.type === 'possession' && (
+            <PossessionCard possession={item.data} activeFixture={activeFixture} latestOdds={latestOdds} updateCount={updateCount} />
+          )}
         </div>
       ))}
     </div>
@@ -396,27 +448,31 @@ function CornerClusterCard({ cluster, activeFixture }: CornerClusterProps) {
 }
 
 /* ==========================================================================
-   PossessionCard — ambient filler, ~ "quietest card" per spec. No possession
-   percentages: TxLINE's scores feed carries no possession field, so this
-   never shows a number it can't back up.
+   PossessionCard — the "quietest card", but never dead: the pitch may be calm
+   while the market keeps ticking, so it carries the live market pulse.
+   (No possession percentages — TxLINE's feed has no possession field, so this
+   never shows a number it can't back up.)
    ========================================================================== */
 interface PossessionProps {
   possession: PossessionData
   activeFixture: Fixture | null
+  latestOdds: OddsEvent | null
+  updateCount: number
 }
 
-function PossessionCard({ possession, activeFixture }: PossessionProps) {
+function PossessionCard({ possession, activeFixture, latestOdds, updateCount }: PossessionProps) {
   return (
-    <div className="w-full h-full flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3 opacity-70">
+    <div className="w-full h-full flex flex-col items-center justify-center gap-6">
+      <div className="flex flex-col items-center gap-3 opacity-80">
         <div className="w-2 h-2 rounded-full bg-gray-500 animate-pulse" />
-        <p className="text-xs text-gray-500 font-display uppercase tracking-widest text-center">
+        <p className="text-xs text-gray-400 font-display uppercase tracking-widest text-center">
           {activeFixture?.homeTeam} vs {activeFixture?.awayTeam}
         </p>
-        <p className="text-[10px] text-gray-600 font-mono uppercase tracking-widest">
-          {possession.minute}&apos; — quiet passage of play
+        <p className="text-[10px] text-gray-500 font-mono uppercase tracking-widest">
+          {possession.minute}&apos; — quiet on the pitch, market still moving
         </p>
       </div>
+      <MarketPulse fixture={activeFixture} odds={latestOdds} updateCount={updateCount} />
     </div>
   )
 }
