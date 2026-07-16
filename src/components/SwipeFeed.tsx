@@ -127,6 +127,7 @@ export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresSt
   if (feedItems.length === 0) {
     const phase = activeFixture?.phase
     const upcoming = phase === 'NS' || phase === 'P'
+    const finished = phase === 'F' || phase === 'FET' || phase === 'FPE' || phase === 'C'
     const kickoffLabel = activeFixture?.kickoff
       ? new Date(activeFixture.kickoff).toLocaleString([], {
           weekday: 'short',
@@ -161,12 +162,14 @@ export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresSt
 
         <div className="mt-8 max-w-sm rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-left">
           <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#f5c518' }}>
-            {upcoming ? 'Nothing yet — that’s normal' : 'Connected — waiting for a big moment'}
+            {finished ? 'Replay starting — real recorded data' : upcoming ? 'Nothing yet — that’s normal' : 'Connected — waiting for a big moment'}
           </p>
           <p className="text-xs text-gray-400 leading-relaxed">
-            {upcoming
-              ? 'This feed fills up once the match kicks off. Every goal, red card and sudden odds move becomes a full-screen card here — you swipe through the drama like a story.'
-              : 'Cards appear only when something big happens: a goal, a red card, or the odds moving sharply. Quiet minutes in the match mean a quiet feed — the moment something breaks, it lands here first.'}
+            {finished
+              ? 'This match already happened, so LUMIÈRE is replaying its real market data from the start. The first cards land within a minute or two — every goal and shock fires exactly where it did in real life.'
+              : upcoming
+                ? 'This feed fills up once the match kicks off. Every goal, red card and sudden odds move becomes a full-screen card here — you swipe through the drama like a story.'
+                : 'Cards appear only when something big happens: a goal, a red card, or the odds moving sharply. Quiet minutes in the match mean a quiet feed — the moment something breaks, it lands here first.'}
           </p>
           <div className="mt-4 flex items-center gap-4">
             <a href="/guide" className="text-[11px] font-bold uppercase tracking-widest hover:underline" style={{ color: '#f5c518' }}>

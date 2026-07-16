@@ -23,6 +23,10 @@ interface AmbientOverlayProps {
 
 const AUTO_DISMISS_MS = 8000
 
+function isCompletedPhase(phase: Fixture['phase']): boolean {
+  return phase === 'F' || phase === 'FET' || phase === 'FPE' || phase === 'C'
+}
+
 export default function AmbientOverlay({
   activeFixture,
   scoresState,
@@ -80,8 +84,9 @@ export default function AmbientOverlay({
         />
         {!hasOdds && (
           <p className="mt-4 text-center text-xs text-gray-500 leading-relaxed">
-            The chances bar starts moving once the market opens for this match — usually just before kickoff.
-            Big moves slide up from the bottom as alerts.{' '}
+            {isCompletedPhase(activeFixture.phase)
+              ? 'This match is being replayed with its real recorded data — the chances bar comes alive shortly. (The first replay of a match takes a minute to prepare.)'
+              : 'The chances bar starts moving once the market opens for this match — usually just before kickoff. Big moves slide up from the bottom as alerts.'}{' '}
             <a href="/guide" className="hover:underline" style={{ color: '#f5c518' }}>
               How this works →
             </a>

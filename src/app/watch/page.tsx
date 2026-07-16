@@ -13,6 +13,14 @@ import { useAuthUser } from '@/lib/use-auth'
 
 type AppMode = 'following' | 'watching'
 
+function isCompletedPhase(phase: Fixture['phase']): boolean {
+  return phase === 'F' || phase === 'FET' || phase === 'FPE' || phase === 'C'
+}
+
+function isLivePhase(phase: Fixture['phase']): boolean {
+  return phase !== 'NS' && phase !== 'P' && !isCompletedPhase(phase)
+}
+
 function WatchContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -79,13 +87,17 @@ function WatchContent() {
           const res = await fetch('/api/fixtures')
           if (!res.ok) throw new Error('Failed to retrieve active fixtures')
           const data = await res.json()
-          const list = data.fixtures as Fixture[]
+          // Default pick: a live match first, else the next upcoming kickoff,
+          // else the most recently finished match (which auto-plays as a replay).
+          const rank = (f: Fixture) => (isLivePhase(f.phase) ? 0 : f.phase === 'NS' || f.phase === 'P' ? 1 : 2)
+          const list = (data.fixtures as Fixture[]).sort(
+            (a, b) => rank(a) - rank(b) || (rank(a) === 2 ? b.kickoff - a.kickoff : a.kickoff - b.kickoff)
+          )
           setFixtures(list)
 
           if (list.length > 0) {
-            const active = list.find((f) => f.phase !== 'NS' && f.phase !== 'F' && f.phase !== 'FET' && f.phase !== 'FPE') || list[0]
-            setActiveFixture(active)
-            setSelectedMatchId(active.matchId)
+            setActiveFixture(list[0])
+            setSelectedMatchId(list[0].matchId)
           }
         }
       } catch (err) {
@@ -139,7 +151,11 @@ function WatchContent() {
       setActiveShock(shock)
     }
 
-    if (isDemo) {
+    // A finished match has no live stream to listen to — auto-play its replay
+    // (the real recorded data) instead of sitting on a feed that never speaks.
+    const replayMode = isDemo || isCompletedPhase(activeFixture.phase)
+
+    if (replayMode) {
       oddsSource = new EventSource(`/api/replay?matchId=${selectedMatchId}&speed=5`)
       oddsSource.addEventListener('event', (e) => {
         try {

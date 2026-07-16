@@ -10,6 +10,7 @@ import type { Fixture, GamePhase } from '@/lib/txline/types'
 import TeamFlag from '@/components/TeamFlag'
 import { LogoWordmark } from '@/components/Logo'
 import Faq from '@/components/Faq'
+import { useAuthUser } from '@/lib/use-auth'
 
 // Hero effects — client-only, loaded lazily so they never block paint.
 const LightRays = dynamic(() => import('@/components/reactbits/LightRays/LightRays'), { ssr: false })
@@ -180,6 +181,7 @@ export default function HomePage() {
   const [index, setIndex] = useState(0)
   const [fixtures, setFixtures] = useState<Fixture[]>([])
   const pageRef = useRef<HTMLDivElement>(null)
+  const { user } = useAuthUser()
 
   // A sign-in link that lands here instead of /auth/callback (e.g. Supabase
   // falling back to the Site URL) leaves ?code= stranded — forward it so the
@@ -257,8 +259,11 @@ export default function HomePage() {
             <Link href="/guide" className="hover:text-white transition-colors">Guide</Link>
           </nav>
           <div className="flex items-center gap-4 shrink-0">
-            <Link href="/auth" className="hidden sm:block text-[11px] font-bold uppercase tracking-widest text-gray-400 hover:text-white transition-colors">
-              Sign in
+            <Link
+              href={user ? '/profile' : '/auth'}
+              className="hidden sm:block text-[11px] font-bold uppercase tracking-widest text-gray-400 hover:text-white transition-colors"
+            >
+              {user ? 'My profile' : 'Sign in'}
             </Link>
             <Link
               href="/watch?demo=true"
@@ -372,10 +377,10 @@ export default function HomePage() {
                 <PlayIcon /> Watch the live demo
               </Link>
               <Link
-                href="/auth"
+                href={user ? '/watch' : '/auth'}
                 className="px-8 py-4 rounded-full font-display font-bold uppercase tracking-widest text-sm border border-white/15 text-white hover:bg-white/5 transition-colors"
               >
-                Sign in →
+                {user ? 'Open the app →' : 'Sign in →'}
               </Link>
             </div>
             <div className="hero-rise mt-8 flex items-center gap-8 font-mono" style={{ animationDelay: '0.64s' }}>
