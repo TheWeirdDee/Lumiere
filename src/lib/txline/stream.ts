@@ -110,6 +110,9 @@ function startSseLoop(
     let backoffIdx = 0
     let hadConnection = false
     let authRetried = false
+    // SSE cursors survive transport reconnects so the provider can resume
+    // after the last record instead of silently leaving a hole.
+    let lastEventId: string | undefined
 
     while (!handle.closed) {
       try {
@@ -122,6 +125,7 @@ function startSseLoop(
             'X-Api-Token': apiToken,
             Accept: 'text/event-stream',
             'Cache-Control': 'no-cache',
+            ...(lastEventId ? { 'Last-Event-ID': lastEventId } : {}),
           },
           signal: controller.signal,
         })
@@ -148,6 +152,7 @@ function startSseLoop(
 
         for await (const message of readSseMessages(res.body)) {
           if (handle.closed) break
+          if (message.id !== undefined) lastEventId = message.id || undefined
           if (!message.data) continue
           let data: unknown
           try {
@@ -213,8 +218,17 @@ export function connectScoresStream(callbacks: StreamCallbacks): () => void {
     const matchId = String(record.FixtureId)
     const prev = states.get(matchId)
     if (!prev) return
+    const lastSeq = seqFence.get(matchId) ?? 0
+    if (record.Seq <= lastSeq) return
+    if (lastSeq > 0 && record.Seq > lastSeq + 1) {
+      callbacks.onError(
+        new Error(`[scores] sequence gap for fixture ${matchId}: expected ${lastSeq + 1}, received ${record.Seq}`)
+      )
+    }
     const next = applyRecordToState(prev, record)
     states.set(matchId, next)
+    seqFence.set(matchId, record.Seq)
+    callbacks.onMatchState?.(next)
     const event = normalizer.normalize(record)
     if (event) callbacks.onMatchEvent(event, next)
   }
@@ -227,6 +241,7 @@ export function connectScoresStream(callbacks: StreamCallbacks): () => void {
       states.set(matchId, snapshot.state)
       seqFence.set(matchId, maxSeq)
       normalizer.seedFromState(snapshot.state)
+      callbacks.onMatchState?.(snapshot.state)
       const queued = pending.get(matchId) ?? []
       pending.delete(matchId)
       for (const record of queued.sort((a, b) => a.Seq - b.Seq)) {
@@ -243,7 +258,6 @@ export function connectScoresStream(callbacks: StreamCallbacks): () => void {
     if (!isScoresRecord(data)) return
     const matchId = String(data.FixtureId)
     if (states.has(matchId)) {
-      if (data.Seq <= (seqFence.get(matchId) ?? 0)) return // already in snapshot
       handleLive(data)
       return
     }

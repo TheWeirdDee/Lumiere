@@ -10,6 +10,23 @@ const cache = await loadReplayData(matchId)
 const kickoff = cache.orientation.kickoff
 assert(kickoff, `Replay ${matchId} has no kickoff timestamp`)
 
+const orderedScoreSeqs = [...cache.scores]
+  .sort((a, b) => a.Seq - b.Seq)
+  .map((record) => record.Seq)
+const missingScoreSequenceRanges: string[] = []
+for (let i = 1; i < orderedScoreSeqs.length; i += 1) {
+  const previous = orderedScoreSeqs[i - 1]
+  const current = orderedScoreSeqs[i]
+  if (current > previous + 1) {
+    missingScoreSequenceRanges.push(`${previous + 1}-${current - 1}`)
+  }
+}
+assert.deepEqual(
+  missingScoreSequenceRanges,
+  [],
+  `Raw scores history has missing Seq ranges: ${missingScoreSequenceRanges.join(', ')}`
+)
+
 const phaseRank: Partial<Record<GamePhase, number>> = {
   NS: 0,
   H1: 1,
@@ -102,6 +119,8 @@ assert.deepEqual(violations, [], violations.join('\n'))
 console.log(JSON.stringify({
   matchId,
   teams: `${cache.orientation.homeTeam} vs ${cache.orientation.awayTeam}`,
+  rawScoreRecords: cache.scores.length,
+  missingScoreSequenceRanges,
   recordedTimelineMinutes: Math.round(controls.getDuration() / 60_000),
   maxMatchMinute: maxMinute,
   scoreEvents: scoreEventCount,

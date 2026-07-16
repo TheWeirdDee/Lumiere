@@ -78,7 +78,9 @@ export default function AuthPage() {
     script.setAttribute('data-size', 'large')
     script.setAttribute('data-radius', '12')
     script.setAttribute('data-onauth', 'onTelegramAuth(user)')
-    script.setAttribute('data-request-access', 'write')
+    script.onerror = () => {
+      setTelegramError('Telegram login could not load. Check your connection or use Email sign-in.')
+    }
     container.appendChild(script)
 
     return () => {
@@ -140,7 +142,13 @@ export default function AuthPage() {
 
         {tab === 'telegram' ? (
           <div className="space-y-4">
-            <p className="text-xs text-gray-400 text-center leading-relaxed">Log in with one tap via Telegram.</p>
+            <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-center">
+              <p className="text-xs font-semibold text-white">Telegram sends an in-app approval, not a numeric code.</p>
+              <p className="mt-1 text-[11px] text-gray-400 leading-relaxed">
+                Open Telegram on a device already signed into that account, find the login approval message,
+                and tap Confirm. Keep this browser window open.
+              </p>
+            </div>
             <div ref={telegramContainerRef} className="flex justify-center min-h-[44px]" />
             {!BOT_USERNAME && (
               <p className="text-xs text-amber-500 text-center">
@@ -149,8 +157,8 @@ export default function AuthPage() {
             )}
             {telegramError && <p className="text-xs text-rose-400 text-center">{telegramError}</p>}
             <p className="text-[11px] text-gray-500 text-center leading-relaxed">
-              Telegram only shows its login button on the app&apos;s registered domain. If nothing appears above
-              (e.g. on localhost), use the Email tab.
+              If the approval message does not arrive, verify that the number belongs to the Telegram account
+              currently open on your device, then retry or use the Email tab.
             </p>
           </div>
         ) : emailStep === 'enter-email' ? (

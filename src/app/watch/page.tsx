@@ -16,6 +16,7 @@ type AppMode = 'following' | 'watching'
 
 const STANDARD_REPLAY_SPEED = 1
 const DEMO_REPLAY_SPEED = 5
+const LAST_MATCH_STORAGE_KEY = 'lumiere_last_match_id'
 
 function oddsEventKey(event: OddsEvent): string {
   const messageId = (event.raw as { MessageId?: unknown } | null)?.MessageId
@@ -108,8 +109,22 @@ function WatchContent() {
           setFixtures(list)
 
           if (list.length > 0) {
-            setActiveFixture(list[0])
-            setSelectedMatchId(list[0].matchId)
+            const requestedMatchId = new URL(window.location.href).searchParams.get('match')
+            const savedMatchId = localStorage.getItem(LAST_MATCH_STORAGE_KEY)
+            const restoredFixture =
+              list.find((fixture) => fixture.matchId === requestedMatchId) ??
+              list.find((fixture) => fixture.matchId === savedMatchId) ??
+              list[0]
+
+            setActiveFixture(restoredFixture)
+            setSelectedMatchId(restoredFixture.matchId)
+            localStorage.setItem(LAST_MATCH_STORAGE_KEY, restoredFixture.matchId)
+
+            const url = new URL(window.location.href)
+            if (url.searchParams.get('match') !== restoredFixture.matchId) {
+              url.searchParams.set('match', restoredFixture.matchId)
+              window.history.replaceState(window.history.state, '', url)
+            }
           }
         }
       } catch (err) {
@@ -175,6 +190,22 @@ function WatchContent() {
       setUpdates((prev) => [...prev, update])
     }
 
+    const handleMatchState = (raw: string) => {
+      const state = JSON.parse(raw) as MatchState
+      setStreamError(null)
+      setScoresState(state)
+      setActiveFixture((prev) =>
+        prev
+          ? {
+              ...prev,
+              homeScore: state.homeScore,
+              awayScore: state.awayScore,
+              phase: state.phase,
+            }
+          : null
+      )
+    }
+
     const handleShock = (raw: string) => {
       // The relay already attaches the AI explanation server-side before
       // emitting — no client-side fetch or fallback needed here.
@@ -230,6 +261,13 @@ function WatchContent() {
       scoresSource = new EventSource(`/api/scores-relay?matchId=${selectedMatchId}`)
       oddsSource = new EventSource(`/api/odds-relay?matchId=${selectedMatchId}`)
 
+      scoresSource.addEventListener('state', (e) => {
+        try {
+          handleMatchState(e.data)
+        } catch (err) {
+          console.error('Failed to parse live score state:', err)
+        }
+      })
       scoresSource.addEventListener('event', (e) => {
         try {
           handleMatchEvent(e.data, true, true)
@@ -268,6 +306,10 @@ function WatchContent() {
   const handleSelectMatch = (fixture: Fixture) => {
     setActiveFixture(fixture)
     setSelectedMatchId(fixture.matchId)
+    localStorage.setItem(LAST_MATCH_STORAGE_KEY, fixture.matchId)
+    const url = new URL(window.location.href)
+    url.searchParams.set('match', fixture.matchId)
+    window.history.replaceState(window.history.state, '', url)
   }
 
   if (loading || (!isDemo && (authLoading || !user))) {

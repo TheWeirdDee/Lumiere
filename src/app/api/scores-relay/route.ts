@@ -30,6 +30,10 @@ export async function GET(request: NextRequest) {
       }, 30_000)
       
       disconnect = connectScoresStream({
+        onMatchState: (state: MatchState) => {
+          if (matchId && state.matchId !== matchId) return
+          send('state', state)
+        },
         onMatchEvent: (event: MatchEvent, state: MatchState) => {
           if (matchId && event.matchId !== matchId) return
           

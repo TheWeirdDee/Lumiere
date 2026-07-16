@@ -234,6 +234,8 @@ export interface MerkleProof {
  */
 export interface StreamCallbacks {
   onMatchEvent: (event: MatchEvent, state: MatchState) => void
+  /** Latest score/clock state, including records that do not map to a feed card. */
+  onMatchState?: (state: MatchState) => void
   onOddsEvent: (event: OddsEvent) => void
   onError: (error: Error) => void
   onReconnect: () => void
