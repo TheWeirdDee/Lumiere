@@ -1,30 +1,23 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getSupabaseBrowser } from '@/lib/supabase-browser'
 import { useAuthUser } from '@/lib/use-auth'
 import { LogoMark } from '@/components/Logo'
-import type { TelegramLoginPayload } from '@/lib/telegram-auth'
-
-declare global {
-  interface Window {
-    onTelegramAuth?: (user: TelegramLoginPayload) => void
-  }
-}
 
 type Tab = 'telegram' | 'email'
 type EmailStep = 'enter-email' | 'enter-otp'
-
-const BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || ''
 
 export default function AuthPage() {
   const router = useRouter()
   const { user, loading } = useAuthUser()
   const [tab, setTab] = useState<Tab>('telegram')
   const [telegramError, setTelegramError] = useState<string | null>(null)
-  const telegramContainerRef = useRef<HTMLDivElement>(null)
+  const [telegramStartUrl, setTelegramStartUrl] = useState<string | null>(null)
+  const [telegramCode, setTelegramCode] = useState('')
+  const [telegramBusy, setTelegramBusy] = useState(false)
 
   const [emailStep, setEmailStep] = useState<EmailStep>('enter-email')
   const [email, setEmail] = useState('')
@@ -42,52 +35,55 @@ export default function AuthPage() {
     router.push(existing?.username ? '/watch' : '/auth/username')
   }
 
-  // Telegram Login Widget
+  const prepareTelegramLogin = useCallback(async () => {
+    setTelegramError(null)
+    setTelegramStartUrl(null)
+    try {
+      const res = await fetch('/api/auth/telegram-code/start', { cache: 'no-store' })
+      const body = (await res.json()) as { botUrl?: string; error?: string }
+      if (!res.ok || !body.botUrl) {
+        throw new Error(body.error || 'Could not prepare Telegram login')
+      }
+      setTelegramStartUrl(body.botUrl)
+    } catch (error) {
+      setTelegramError(error instanceof Error ? error.message : String(error))
+    }
+  }, [])
+
   useEffect(() => {
-    if (tab !== 'telegram' || !telegramContainerRef.current || !BOT_USERNAME) return
-    const container = telegramContainerRef.current
-    container.innerHTML = ''
+    if (tab === 'telegram') void prepareTelegramLogin()
+  }, [tab, prepareTelegramLogin])
 
-    window.onTelegramAuth = (tgUser: TelegramLoginPayload) => {
-      void (async () => {
-        setTelegramError(null)
-        try {
-          const res = await fetch('/api/auth/telegram', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(tgUser),
-          })
-          const body = await res.json()
-          if (!res.ok) throw new Error(body.error || 'Telegram login failed')
+  const handleTelegramCode = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setTelegramError(null)
+    setTelegramBusy(true)
+    try {
+      const res = await fetch('/api/auth/telegram-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: telegramCode }),
+      })
+      const body = (await res.json()) as { tokenHash?: string; error?: string }
+      if (!res.ok || !body.tokenHash) {
+        throw new Error(body.error || 'Telegram login failed')
+      }
 
-          const supabase = getSupabaseBrowser()
-          const { data, error } = await supabase.auth.verifyOtp({ token_hash: body.tokenHash, type: 'magiclink' })
-          if (error || !data.session) throw new Error(error?.message || 'Could not start session')
-
-          await completeLogin(data.session.user.id)
-        } catch (err) {
-          setTelegramError(err instanceof Error ? err.message : String(err))
-        }
-      })()
+      const supabase = getSupabaseBrowser()
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: body.tokenHash,
+        type: 'magiclink',
+      })
+      if (error || !data.session) {
+        throw new Error(error?.message || 'Could not start session')
+      }
+      await completeLogin(data.session.user.id)
+    } catch (error) {
+      setTelegramError(error instanceof Error ? error.message : String(error))
+    } finally {
+      setTelegramBusy(false)
     }
-
-    const script = document.createElement('script')
-    script.src = 'https://telegram.org/js/telegram-widget.js?22'
-    script.async = true
-    script.setAttribute('data-telegram-login', BOT_USERNAME)
-    script.setAttribute('data-size', 'large')
-    script.setAttribute('data-radius', '12')
-    script.setAttribute('data-onauth', 'onTelegramAuth(user)')
-    script.onerror = () => {
-      setTelegramError('Telegram login could not load. Check your connection or use Email sign-in.')
-    }
-    container.appendChild(script)
-
-    return () => {
-      window.onTelegramAuth = undefined
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab])
+  }
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -141,26 +137,67 @@ export default function AuthPage() {
         </div>
 
         {tab === 'telegram' ? (
-          <div className="space-y-4">
+          <form onSubmit={handleTelegramCode} className="space-y-4">
             <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-center">
-              <p className="text-xs font-semibold text-white">Telegram sends an in-app approval, not a numeric code.</p>
+              <p className="text-xs font-semibold text-white">Sign in through the Lumiere Telegram bot</p>
               <p className="mt-1 text-[11px] text-gray-400 leading-relaxed">
-                Open Telegram on a device already signed into that account, find the login approval message,
-                and tap Confirm. Keep this browser window open.
+                Open the bot, tap Start, copy the complete login code it sends, then paste it below.
+                The code expires after 10 minutes.
               </p>
             </div>
-            <div ref={telegramContainerRef} className="flex justify-center min-h-[44px]" />
-            {!BOT_USERNAME && (
-              <p className="text-xs text-amber-500 text-center">
-                NEXT_PUBLIC_TELEGRAM_BOT_USERNAME is not set — Telegram login is unavailable.
-              </p>
-            )}
+
+            <a
+              href={telegramStartUrl || undefined}
+              target="_blank"
+              rel="noreferrer"
+              aria-disabled={!telegramStartUrl}
+              className={`block w-full rounded-xl px-4 py-3 text-center text-xs font-bold uppercase tracking-wider transition-colors ${
+                telegramStartUrl
+                  ? 'bg-[#229ED9] text-white hover:bg-[#168ac0]'
+                  : 'pointer-events-none bg-white/5 text-gray-600'
+              }`}
+            >
+              {telegramStartUrl ? '1. Open Lumiere bot' : 'Preparing Telegram...'}
+            </a>
+
+            <div>
+              <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                2. Paste the login code
+              </label>
+              <textarea
+                required
+                rows={3}
+                value={telegramCode}
+                onChange={(event) => setTelegramCode(event.target.value)}
+                autoCapitalize="none"
+                autoCorrect="off"
+                autoComplete="one-time-code"
+                spellCheck={false}
+                placeholder="LUM1..."
+                className="w-full resize-none rounded-xl border border-white/10 bg-[#0a0a0a] px-4 py-3 font-mono text-base text-white focus:border-[#f5c518] focus:outline-none"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={telegramBusy || !telegramCode.trim()}
+              className="w-full rounded-xl bg-[#f5c518] py-3.5 text-xs font-bold uppercase tracking-widest text-black transition-colors hover:bg-[#e2b514] disabled:opacity-40"
+            >
+              {telegramBusy ? 'Signing in...' : 'Sign in with Telegram code'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void prepareTelegramLogin()}
+              className="w-full text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-white"
+            >
+              Get a new bot link
+            </button>
             {telegramError && <p className="text-xs text-rose-400 text-center">{telegramError}</p>}
             <p className="text-[11px] text-gray-500 text-center leading-relaxed">
-              If the approval message does not arrive, verify that the number belongs to the Telegram account
-              currently open on your device, then retry or use the Email tab.
+              No Telegram authorization popup or phone-number code is required. Use the Email tab if the bot is unavailable.
             </p>
-          </div>
+          </form>
         ) : emailStep === 'enter-email' ? (
           <form onSubmit={handleSendOtp} className="space-y-4">
             <div>

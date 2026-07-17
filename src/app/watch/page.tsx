@@ -340,8 +340,6 @@ function WatchContent() {
   const homeProb = currentOdds ? currentOdds.homeProb : 0.333
   const drawProb = currentOdds ? currentOdds.drawProb : 0.333
   const awayProb = currentOdds ? currentOdds.awayProb : 0.333
-  const replayMode = isDemo || isCompletedPhase(activeFixture.phase)
-  const replaySpeed = isDemo ? DEMO_REPLAY_SPEED : STANDARD_REPLAY_SPEED
 
   return (
     <div className={`relative ${mode === 'following' ? 'h-screen w-screen bg-black overflow-hidden' : 'min-h-screen bg-[#080808] pb-16'}`}>
@@ -365,14 +363,6 @@ function WatchContent() {
         </button>
         {!isDemo && fixtures.length > 1 && (
           <MatchPicker fixtures={fixtures} selectedMatchId={selectedMatchId} onSelect={handleSelectMatch} />
-        )}
-        {replayMode && (
-          <span
-            title="Recorded match timeline; the market opens five minutes before kickoff"
-            className="ml-1 px-2 py-0.5 rounded-full font-mono text-[9px] font-bold uppercase tracking-wider bg-[#f5c518]/15 text-[#f5c518] border border-[#f5c518]/30"
-          >
-            Replay {replaySpeed}x
-          </span>
         )}
         <Link
           href={user ? '/profile' : '/auth'}
@@ -415,7 +405,6 @@ function WatchContent() {
           updateCount={updates.length}
           activeShock={activeShock}
           onDismissShock={() => setActiveShock(null)}
-          replaySpeed={replayMode ? replaySpeed : null}
         />
       )}
     </div>

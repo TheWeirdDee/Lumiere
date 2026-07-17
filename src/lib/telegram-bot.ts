@@ -1,5 +1,6 @@
 import { Telegraf } from 'telegraf'
 import { supabase } from './supabase'
+import { createTelegramLoginCode } from './telegram-code-auth'
 import type { OddsShock } from '../types'
 
 const token = process.env.TELEGRAM_BOT_TOKEN
@@ -53,8 +54,34 @@ function appHostnames(): string[] {
 }
 
 if (token) {
-  bot.start((ctx) => {
-    ctx.reply(
+  bot.start(async (ctx) => {
+    if (ctx.startPayload.startsWith('login_')) {
+      const nonce = ctx.startPayload.slice('login_'.length)
+      const from = ctx.from
+      if (!from || !/^[A-Za-z0-9_-]{20,64}$/.test(nonce)) {
+        await ctx.reply('This login link is invalid. Return to Lumiere and request a new one.')
+        return
+      }
+      const code = createTelegramLoginCode(
+        {
+          id: from.id,
+          firstName: from.first_name,
+          username: from.username,
+          nonce,
+          issuedAt: Math.floor(Date.now() / 1000),
+        },
+        token
+      )
+      await ctx.reply(
+        'Your LUMIERE login code is below. Copy the complete code and paste it into the sign-in page.\n\n' +
+          `<code>${code}</code>\n\n` +
+          'This code expires in 10 minutes and works only in the browser that requested it.',
+        { parse_mode: 'HTML' }
+      )
+      return
+    }
+
+    await ctx.reply(
       `👋 Welcome to LUMIÈRE\n\n` +
       `The market intelligence layer for World Cup codes.\n\n` +
       `Share your codes with edge scores. Track performance live.\n\n` +

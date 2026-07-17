@@ -54,9 +54,20 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
   useEffect(() => {
     fetch('/api/fixtures')
       .then((r) => r.json())
-      .then((d) => setFixtures((d.fixtures || []).filter((f: Fixture) => isSelectable(f.phase))))
+      .then((d) => {
+        const allFixtures = (d.fixtures || []) as Fixture[]
+        const selectable = allFixtures.filter((fixture) => isSelectable(fixture.phase))
+        const prefilled = prefillMatchId
+          ? allFixtures.find((fixture) => fixture.matchId === prefillMatchId)
+          : undefined
+        setFixtures(
+          prefilled && !selectable.some((fixture) => fixture.matchId === prefilled.matchId)
+            ? [prefilled, ...selectable]
+            : selectable
+        )
+      })
       .catch(() => setFixtures([]))
-  }, [])
+  }, [prefillMatchId])
 
   const activeMatch = fixtures.find((f) => f.matchId === matchId)
 
@@ -197,6 +208,10 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
             placeholder="e.g. XYZ123"
             className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm font-mono rounded-xl px-4 py-3 focus:outline-none focus:border-[#f5c518]"
           />
+          <p className="mt-2 text-[11px] leading-relaxed text-gray-500">
+            Get this from the booking/share option on your SportyBet, bet9ja, 1xBet or 247Bet slip.
+            It is optional; for testing, leave it blank or enter TEST123.
+          </p>
         </div>
       </section>
 

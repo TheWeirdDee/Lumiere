@@ -23,8 +23,6 @@ interface AmbientOverlayProps {
   updateCount: number
   activeShock: OddsShock | null
   onDismissShock: () => void
-  /** null for live matches; otherwise the recorded playback multiplier. */
-  replaySpeed: number | null
 }
 
 const AUTO_DISMISS_MS = 8000
@@ -44,7 +42,6 @@ export default function AmbientOverlay({
   updateCount,
   activeShock,
   onDismissShock,
-  replaySpeed,
 }: AmbientOverlayProps) {
   useEffect(() => {
     if (!activeShock) return
@@ -80,11 +77,6 @@ export default function AmbientOverlay({
         <div className="mt-3 text-center font-mono text-[10px] uppercase tracking-widest text-gray-500" suppressHydrationWarning>
           {new Date(activeFixture.kickoff).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
         </div>
-        {replaySpeed !== null && (
-          <div className="mt-1 text-center font-mono text-[9px] uppercase tracking-wider text-[#f5c518]/75">
-            Recorded replay at {replaySpeed}x - market opens 5 min before kickoff
-          </div>
-        )}
       </div>
 
       {/* Live probability bar — always visible */}
