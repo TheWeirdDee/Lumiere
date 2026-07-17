@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { bot } from '@/lib/telegram-bot'
 
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    configured: Boolean(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_WEBHOOK_SECRET),
+    botUsername: process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || null,
+    appUrl: process.env.NEXT_PUBLIC_APP_URL || null,
+  }, { headers: { 'Cache-Control': 'no-store' } })
+}
+
 export async function POST(request: NextRequest) {
   // Verify secret token if webhook secret is configured
   const secret = request.headers.get('x-telegram-bot-api-secret-token')

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { connectScoresStream } from '@/lib/txline/stream'
 import type { MatchEvent, MatchState } from '@/lib/txline/types'
+import { settleCodesForMatch } from '@/lib/code-settlement'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -22,23 +23,25 @@ export async function GET(request: NextRequest) {
       }
       
       const pingInterval = setInterval(() => {
-        try {
-          controller.enqueue(encoder.encode(`: ping\n\n`))
-        } catch {
-          // Stream might be closed
-        }
+        send('heartbeat', { at: Date.now() })
       }, 30_000)
       
       disconnect = connectScoresStream({
         onMatchState: (state: MatchState) => {
           if (matchId && state.matchId !== matchId) return
           send('state', state)
+          void settleCodesForMatch(state).catch((err) => {
+            console.error('Error settling codes from TxLINE state:', err)
+          })
         },
         onMatchEvent: (event: MatchEvent, state: MatchState) => {
           if (matchId && event.matchId !== matchId) return
           
           // Send both the event and the updated match state
           send('event', { event, state })
+          void settleCodesForMatch(state).catch((err) => {
+            console.error('Error settling codes from TxLINE event:', err)
+          })
         },
         onOddsEvent: () => {}, // unused
         onReconnect: () => {

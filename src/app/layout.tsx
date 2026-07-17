@@ -4,7 +4,7 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'LUMIÈRE — Feel the World Cup',
   description:
-    'The market intelligence layer for World Cup codes. Live odds shocks in plain English, an edge score on every shared betting code, and live tracking your group chat can follow.',
+    'Follow or Fade live World Cup market shocks, resolve calls from TxLINE odds, build Market IQ, and share verified Match Winner codes.',
 }
 
 export default function RootLayout({

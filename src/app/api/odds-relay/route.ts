@@ -3,10 +3,11 @@ import { connectOddsStream } from '@/lib/txline/stream'
 import { getFixtureOrientation } from '@/lib/txline/snapshots'
 import { createShockDetector } from '@/lib/shock-detector'
 import { isPrimaryMarket } from '@/lib/primary-market'
-import { saveShock, getConfiguredGroups } from '@/lib/supabase'
+import { saveShock, getConfiguredGroups, claimShockBroadcast } from '@/lib/supabase'
 import { bot, formatShockMessage } from '@/lib/telegram-bot'
 import { generateExplanation } from '@/lib/ai-explain'
 import type { OddsEvent } from '@/lib/txline/types'
+import { resolvePendingMarketCalls } from '@/lib/market-calls-server'
 
 /** Shocks at or above this move get broadcast to configured Telegram groups. */
 const BIG_SHOCK_THRESHOLD = 0.20
@@ -33,11 +34,7 @@ export async function GET(request: NextRequest) {
       
       // Keep-alive ping every 30s
       const pingInterval = setInterval(() => {
-        try {
-          controller.enqueue(encoder.encode(`: ping\n\n`))
-        } catch {
-          // Stream might be closed
-        }
+        send('heartbeat', { at: Date.now() })
       }, 30_000)
       
       disconnect = connectOddsStream({
@@ -47,6 +44,13 @@ export async function GET(request: NextRequest) {
           
           // Send normal odds update
           send('odds', event)
+
+          // The first primary TxLINE tick at/after a call's five-minute target
+          // resolves it. The database RPC is idempotent, so reconnecting relays
+          // cannot award Market IQ twice.
+          void resolvePendingMarketCalls(event).catch((err) => {
+            console.error('Error resolving Follow/Fade calls:', err)
+          })
           
           // Check for shock asynchronously (detached from the main stream loop —
           // does not block subsequent odds ticks for this or other matches).
@@ -59,14 +63,14 @@ export async function GET(request: NextRequest) {
               })
               if (shock) {
                 shock.explanation = await generateExplanation(shock)
-                send('shock', shock)
-                await saveShock(shock)
+                const persistedShock = await saveShock(shock)
+                send('shock', persistedShock)
 
-                if (Math.abs(shock.delta) >= BIG_SHOCK_THRESHOLD) {
+                if (persistedShock.id && Math.abs(persistedShock.delta) >= BIG_SHOCK_THRESHOLD && await claimShockBroadcast(persistedShock.id)) {
                   try {
-                    const groups = await getConfiguredGroups(shock.matchId)
+                    const groups = await getConfiguredGroups(persistedShock.matchId)
                     for (const chatId of groups) {
-                      await bot.telegram.sendMessage(chatId, formatShockMessage(shock))
+                      await bot.telegram.sendMessage(chatId, formatShockMessage(persistedShock))
                     }
                   } catch (tgErr) {
                     console.error('Error broadcasting shock alerts to Telegram:', tgErr)

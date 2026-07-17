@@ -209,7 +209,7 @@ export default function AuthPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="email@example.com"
-                className="w-full bg-[#0a0a0a] border border-white/10 text-white text-xs font-medium rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#f5c518] transition-all duration-300"
+                className="w-full bg-[#0a0a0a] border border-white/10 text-white text-base font-medium rounded-xl px-4 py-3.5 focus:outline-none focus:border-[#f5c518] transition-all duration-300"
               />
             </div>
 

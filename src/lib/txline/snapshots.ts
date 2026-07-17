@@ -84,15 +84,17 @@ async function apiGetArray<T>(pathname: string): Promise<T[]> {
 export interface FixtureQuery {
   /** Defaults to the World Cup (72). Pass null to query every competition. */
   competitionId?: number | null
-  /** Days since unix epoch; defaults to 13 days ago (tournament window). */
+  /** Days since unix epoch; defaults to the full 2026 World Cup window. */
   startEpochDay?: number
 }
+
+const WORLD_CUP_WINDOW_START_EPOCH_DAY = Math.floor(Date.UTC(2026, 5, 1) / 86_400_000)
 
 export async function getFixtures(params?: FixtureQuery): Promise<Fixture[]> {
   const search = new URLSearchParams()
   const competitionId = params?.competitionId === undefined ? WORLD_CUP_COMPETITION_ID : params.competitionId
   if (competitionId !== null) search.set('competitionId', String(competitionId))
-  const startEpochDay = params?.startEpochDay ?? Math.floor(Date.now() / 86400000) - 13
+  const startEpochDay = params?.startEpochDay ?? WORLD_CUP_WINDOW_START_EPOCH_DAY
   search.set('startEpochDay', String(startEpochDay))
 
   const records = await apiGet<TxLineFixtureRecord[]>(`/fixtures/snapshot?${search.toString()}`)
@@ -108,7 +110,7 @@ async function getFixtureRecord(matchId: string): Promise<TxLineFixtureRecord | 
   const fresh = fixtureIndex && Date.now() - fixtureIndex.at < FIXTURE_INDEX_TTL_MS
   if (!fresh || !fixtureIndex?.byId.has(matchId)) {
     const records = await apiGet<TxLineFixtureRecord[]>(
-      `/fixtures/snapshot?competitionId=${WORLD_CUP_COMPETITION_ID}&startEpochDay=${Math.floor(Date.now() / 86400000) - 13}`
+      `/fixtures/snapshot?competitionId=${WORLD_CUP_COMPETITION_ID}&startEpochDay=${WORLD_CUP_WINDOW_START_EPOCH_DAY}`
     )
     fixtureIndex = { at: Date.now(), byId: new Map(records.map((r) => [String(r.FixtureId), r])) }
   }

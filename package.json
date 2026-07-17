@@ -9,12 +9,16 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
+    "typecheck": "tsc --noEmit --incremental false",
     "activate": "tsx scripts/activate.ts",
     "find-demo-match": "tsx --env-file=.env.local scripts/find-demo-match.ts",
     "setup-telegram": "tsx scripts/setup-telegram.ts",
     "test:replay-integrity": "tsx --env-file=.env.local scripts/test-replay-integrity.ts",
     "test:replay-route": "tsx --env-file=.env.local scripts/test-replay-route.ts",
     "test:replay-soak": "tsx --env-file=.env.local scripts/test-replay-soak.ts"
+    ,"test:market-calls": "tsx scripts/test-market-calls.ts"
+    ,"test:telegram-code": "tsx scripts/test-telegram-code.ts"
+    ,"test:fixture-coverage": "tsx --env-file=.env.local scripts/test-fixture-coverage.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",

@@ -5,6 +5,7 @@ import { createShockDetector } from '@/lib/shock-detector'
 import { generateExplanation } from '@/lib/ai-explain'
 import { isPrimaryMarket } from '@/lib/primary-market'
 import type { ReplayControls, MatchEvent, MatchState, OddsEvent } from '@/lib/txline/types'
+import { saveShock } from '@/lib/supabase'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -56,12 +57,7 @@ export async function GET(request: NextRequest) {
       }
 
       pingInterval = setInterval(() => {
-        if (closed) return
-        try {
-          controller.enqueue(encoder.encode(`: ping\n\n`))
-        } catch {
-          cleanup()
-        }
+        send('heartbeat', { at: Date.now() })
       }, 30_000)
       request.signal.addEventListener('abort', cleanup, { once: true })
 
@@ -89,7 +85,15 @@ export async function GET(request: NextRequest) {
               if (shock) {
                 void (async () => {
                   shock.explanation = await generateExplanation(shock)
-                  send('shock', shock)
+                  try {
+                    const persistedShock = await saveShock(shock, 'replay')
+                    send('shock', persistedShock)
+                  } catch (error) {
+                    // Replays remain usable before the optional schema migration
+                    // is applied; guest Follow/Fade still resolves locally.
+                    console.error('Could not persist replay shock:', error)
+                    send('shock', shock)
+                  }
                 })()
               }
             },

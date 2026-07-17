@@ -1,104 +1,134 @@
-# LUMIÈRE
+# LUMIERE
 
-**The market intelligence layer for World Cup codes.**
+LUMIERE turns TxLINE's live World Cup odds into a fan game: when the market moves sharply, fans choose **Follow** or **Fade**. Five TxLINE event-minutes later, the market resolves the call and a verified result updates Market IQ.
 
-LUMIÈRE puts TxLINE's live odds data behind the betting codes you already share with your friends. Build smarter accumulators. Share them with verified market edge scores. Track performance live. Get shocked when the market moves — and build your next selection from it.
+It also supports TxLINE-verified Match Winner code edges, public code tracking, and Telegram group delivery.
 
-Built for the TxODDS World Cup Hackathon · Consumer & Fan Experiences Track · July 2026
+Built for the TxODDS World Cup Hackathon, Consumer & Fan Experiences track, July 2026.
 
----
+## Core fan loop
 
-## The Problem
+```text
+TxLINE odds SSE
+  -> normalized full-match 1X2 probability
+  -> 15 percentage-point / 90-second shock detector
+  -> Follow or Fade fan call
+  -> first TxLINE 1X2 tick after five event-minutes
+  -> immutable Market IQ event
+  -> profile, leaderboard and Telegram result
+```
 
-Every day during the World Cup, millions of fans build accumulators on SportyBet, bet9ja, 1xBet, and 247Bet and share the booking codes in Telegram and WhatsApp groups. The problem: nobody knows if the selections are actually smart. There's no context, no market intelligence, no track record behind the code.
+The live interface shows the TxLINE update count, event timestamps and connection state (`live`, `reconnecting`, or `stale`). Replays use recorded TxLINE events and the same rules, but are practice-only and never affect the leaderboard.
 
-## What LUMIÈRE Does
+## Implemented product
 
-**Odds shock alerts:** When win probability shifts more than 15% in 90 seconds, LUMIÈRE fires a full-screen alert — what moved, how fast, and a plain-English AI explanation. Each shock has an "Add to Code" button — the market movement becomes your selection trigger.
+- **Follow/Fade:** one call per user per live shock. Correct `+10 IQ`, wrong `-5 IQ`, close result is a push.
+- **Auditable Market IQ:** every score change has a unique source event; reconnects and concurrent relays cannot award points twice.
+- **Odds shocks:** a home or away win probability moving at least 15 percentage points inside 90 feed-seconds.
+- **Verified edge builder:** supports TxLINE Match Winner only (`home`, `draw`, `away`). Unsupported market schemas are hidden instead of estimated.
+- **Automatic code settlement:** final TxLINE score states settle selections server-side. There is no public settlement endpoint.
+- **Public tracking:** code pages poll current scores and final results. One browser counts as one view rather than every poll counting again.
+- **Telegram login:** the sign-in page opens `@LumiereWorldCupBot`; `/start` sends a signed, ten-minute `LUM1...` browser-bound code.
+- **Telegram groups:** code-link expansion, current odds, recent shocks, Market IQ leaderboard, per-match group subscriptions and final code result notifications.
+- **Guest demo:** no account required. It replays real recorded TxLINE data at accelerated speed and completes a practice Follow/Fade loop with a shareable result.
 
-**Code builder with edge scoring:** Build your accumulator in LUMIÈRE. For each selection, TxLINE's live implied probability is compared against the odds your platform is offering. You see your real market edge per selection and overall — positive edge means you're getting good value, negative means the bookmaker has you.
+## Live application
 
-**Share with context:** Your code goes to Telegram with your edge score attached. Not just "here's my code" — "here's my code and the market says I have +3.2% edge on these selections."
+- App: [https://lumiereworldcup.vercel.app](https://lumiereworldcup.vercel.app)
+- Demo: [https://lumiereworldcup.vercel.app/watch?demo=true](https://lumiereworldcup.vercel.app/watch?demo=true)
+- Bot: `@LumiereWorldCupBot`
 
-**Live performance tracking:** Every code has a public URL. Selections update in real time as matches play. Your Telegram group watches your code's performance without switching apps.
+## TxLINE endpoints used
 
-**Telegram bot (@LumièreBot):** Tag it in any group. It auto-expands shared code links with full details and live status. It posts odds shock alerts during matches. Members can query match odds directly in the group chat.
+These are the upstream TxLINE paths used by the server, not LUMIERE's internal browser routes.
 
-**Market IQ leaderboard:** Every user builds a verified track record across the tournament — not just "did you win" but "were you right about the market being wrong." The leaderboard shows who actually understands market pricing.
+| TxLINE path | Use |
+|---|---|
+| `GET /fixtures/snapshot` | World Cup fixtures and orientation |
+| `GET /scores/stream` | Live score state and match events |
+| `GET /odds/stream` | Live consensus odds, shock detection and call resolution |
+| `GET /scores/snapshot/{fixtureId}` | Current/final score state and settlement recovery |
+| `GET /odds/snapshot/{fixtureId}` | Current Match Winner probabilities and edge verification |
+| `GET /scores/historical/{fixtureId}` | Historical score records when available |
+| `GET /scores/updates/{epochDay}/{hour}/{interval}` | Replay history fallback |
+| `GET /odds/updates/{epochDay}/{hour}/{interval}` | Replay odds history |
 
----
+Both live streams and replay records pass through the same normalizers in `src/lib/txline`.
 
-## Demo
+## Telegram commands
 
-**[lumiere.vercel.app/watch?demo=true](https://lumiere.vercel.app/watch?demo=true)**
+| Command | Result |
+|---|---|
+| `/start` | Welcome message or signed login code |
+| `/status` | Bot/application health |
+| `/odds Argentina` | Current TxLINE 1X2 market |
+| `/shock [team]` | Current market for a team, or recent shocks without a team |
+| `/followmatch Argentina` | Subscribe the current group to major shocks for that fixture |
+| `/unfollowmatch [team]` | Remove one or all group subscriptions |
+| `/mycode` | The Telegram user's latest codes |
+| `/leaderboard` | Market IQ leaderboard |
 
-No account, no wallet, no setup. Opens automatically on a historic World Cup match, replays at 5x speed, shows a real odds shock firing, a code being built from it with edge scores, and the Telegram share flow.
+Telegram group privacy must be disabled in BotFather for automatic link expansion. This is a Telegram account setting and cannot be changed by application code.
 
----
+## Security and integrity
 
-## TxLINE Integration
+- TxLINE, Supabase service-role, Telegram and Groq credentials are server-only.
+- Code creation recomputes probability and edge from TxLINE; client-supplied edge values are not trusted.
+- Selection settlement is derived from final TxLINE scores, never from a public request body.
+- Follow/Fade entry probability comes from the persisted shock; resolution probability comes from a future TxLINE event.
+- Database unique constraints make shocks, market calls, IQ events and Telegram broadcasts idempotent.
+- Live calls close after 30 seconds. Historical replay calls are local practice and cannot affect Market IQ.
 
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /api/odds/stream` (SSE) | Live odds → shock detection + edge scoring |
-| `GET /api/scores/stream` (SSE) | Live match events → code performance tracking |
-| `GET /api/fixtures` | Match list for code builder |
-| `GET /api/odds/{matchId}/history` | Historical odds for replay engine |
-| `GET /api/scores/{matchId}/history` | Historical events for replay engine |
+## Commercial integrations
 
-**Auth:** Service Level 12 (real-time, free World Cup tier). Mainnet. Server-side only — credentials never reach the browser.
+The free fan experience is functional without a commercial partner.
 
-**Shock detection:** Fires when win probability shifts ≥15% within a 90-second rolling window. Runs server-side in the odds relay route.
+- **Affiliate attribution:** approved HTTPS destination templates can be configured per platform. Buttons stay hidden until `NEXT_PUBLIC_AFFILIATE_LINKS_ENABLED=true`; every redirect is recorded. Partner approval and URLs are manual requirements.
+- **Sponsored market moments:** a sponsor name/link can be configured without changing code. No sponsor is displayed when unset.
+- **B2B export:** `GET /api/data/market-intelligence` returns an anonymized shocks/calls/selections dataset with a bearer secret.
+- **Premium creator subscriptions:** roadmap only. The application does not claim to sell subscriptions today.
 
-**Edge calculation:** `edge = txlineImpliedProbability - platformImpliedProbability`. Positive edge means the market gives a higher probability than your platform's odds imply — you're getting value.
-
----
-
-## Monetization Path
-
-**Affiliate revenue:** Every "Open in SportyBet/bet9ja" tap carries an affiliate tag. SportyBet, bet9ja, and 1xBet all run affiliate programs — standard CPA per depositing user. This is the primary revenue path and it's immediate.
-
-**Premium tipster tier:** Top 10% Market IQ users can go premium. Followers pay a monthly subscription to receive their codes before public sharing. Platform takes 30%.
-
-**Brand sponsorship:** Betting platforms sponsor the "Shock of the Match" — their logo on the shock alert for high-profile games. The shock alert is the highest-attention moment in the product.
-
-**B2B data:** A dataset of fan selections correlated with market edge and actual outcomes across 104 World Cup games is genuinely valuable to betting operators. Post-tournament data licensing.
-
----
+LUMIERE never accepts stakes or places bets. Operators are responsible for affiliate approval, age gating and jurisdiction-specific compliance before enabling bookmaker destinations.
 
 ## Stack
 
-- **Framework:** Next.js 16.2 + TypeScript + Tailwind CSS
-- **Data:** TxLINE SSE streams (Service Level 12, mainnet)
-- **Auth:** Supabase Auth (Telegram OAuth + Email OTP)
-- **Database:** Supabase (codes, selections, shocks, users, leaderboard)
-- **AI:** Groq (llama-3.1-8b-instant) for one-sentence shock explanations
-- **Bot:** Telegraf.js (@LumièreBot)
-- **Deploy:** Vercel (web) + Telegram webhook on Vercel
+- Next.js 16.2, React 19, TypeScript and Tailwind CSS
+- TxLINE Service Level 12 mainnet data
+- Supabase Auth and Postgres
+- Telegram Bot API with a Vercel webhook
+- Groq for one-sentence shock explanations, with a deterministic fallback
+- Solana activation through `scripts/activate.ts`
 
----
-
-## Run Locally
+## Local setup
 
 ```bash
-git clone https://github.com/TheWeirdDee/lumiere
-cd lumiere
 npm install
 cp .env.example .env.local
-# Fill in TxLINE API token, Supabase credentials, Telegram bot token, Groq key
-npm run dev -- --webpack
+npm run activate
 ```
 
-Open [http://localhost:3000/watch?demo=true](http://localhost:3000/watch?demo=true)
+Run `supabase/schema.sql` in the Supabase SQL editor before deploying application code, then:
 
----
+```bash
+npm run setup-telegram
+npm run dev
+```
 
-## TxLINE API Feedback
+## Verification
 
-**Loved:** The SSE stream format is clean and reliable. Historical snapshot endpoints made the replay engine straightforward to build. The guest JWT + API token two-credential system is well-documented. Service Level 12 being completely free for World Cup data made the hackathon accessible.
+```bash
+npm run typecheck
+npm run test:market-calls
+npm run test:replay-integrity
+npm run test:replay-route
+npm run test:replay-soak
+npm run build
+```
 
-**Friction:** Field names in SSE payloads required trial and error — minor discrepancies between API reference documentation and actual stream output. A versioned stream schema document would save significant debugging time. The on-chain activation flow is correct but has many failure points that surface as silent errors; clearer error messages from the activation endpoint would help.
+`npm run setup-telegram` verifies that the bot token belongs to the configured username before registering the webhook and command list.
 
----
+## TxLINE feedback
 
-Built by Divine ([@TheWeirdDee](https://github.com/TheWeirdDee)) · Lagos, Nigeria · 2026
+The normalized live streams and time-bucket history make it possible to run one product pipeline in both live and replay modes. The main friction was discovering which market identifiers were present in actual World Cup payloads. LUMIERE therefore exposes Match Winner edge only and reports unavailable markets honestly. Versioned payload examples for each competition and market would reduce that discovery time.
+
+Built by Divine ([@TheWeirdDee](https://github.com/TheWeirdDee)), Lagos, Nigeria, 2026.

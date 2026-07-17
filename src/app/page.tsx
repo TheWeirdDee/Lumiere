@@ -640,7 +640,7 @@ export default function HomePage() {
               <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-5 bg-emerald-500/10 border border-emerald-500/25 text-emerald-400">
                 <TrendIcon />
               </div>
-              <h3 className="font-display text-lg font-bold text-white">An edge score on every code</h3>
+              <h3 className='font-display text-lg font-bold text-white'>Verified 1X2 edge on supported codes</h3>
               <p className="mt-2.5 text-sm text-gray-400 leading-relaxed">
                 Type in the odds your betting app is offering. LUMIÈRE compares them against the live market and stamps
                 each pick green — you&apos;re getting value — or red — the bookmaker has the edge.
@@ -701,7 +701,7 @@ export default function HomePage() {
           <div className="reveal text-center max-w-2xl mx-auto mb-14">
             <SectionLabel>How it works</SectionLabel>
             <h2 className="font-display text-3xl md:text-4xl font-bold text-white leading-tight">
-              Watch. Act. Share.
+              Watch. Call. Share.
             </h2>
           </div>
 
@@ -718,11 +718,10 @@ export default function HomePage() {
             </div>
             <div className="reveal rounded-3xl border border-white/5 bg-[#0f0f0f] p-7" style={{ transitionDelay: '80ms' }}>
               <div className="font-mono text-3xl font-bold mb-4" style={{ color: GOLD }}>02</div>
-              <h3 className="font-display text-lg font-bold text-white">Act on a shock</h3>
+              <h3 className='font-display text-lg font-bold text-white'>Follow or Fade the shock</h3>
               <p className="mt-2.5 text-sm text-gray-400 leading-relaxed">
-                A shock fires? Tap <strong className="text-gray-200">Act on this</strong>. The pick is pre-filled in
-                the code builder — add the odds your platform is offering and see your edge before you commit to
-                anything.
+                A shock fires? Predict whether the move will hold or reverse. Five TxLINE event-minutes later, the
+                next eligible market update verifies the result and updates Market IQ. No money and no result guessed by the app.
               </p>
             </div>
             <div className="reveal rounded-3xl border border-white/5 bg-[#0f0f0f] p-7" style={{ transitionDelay: '160ms' }}>
@@ -781,27 +780,27 @@ export default function HomePage() {
               Not &ldquo;did you win&rdquo; —<br />&ldquo;were you right?&rdquo;
             </h2>
             <p className="mt-5 text-sm md:text-base text-gray-400 leading-relaxed max-w-xl">
-              Every resolved code updates your Market IQ score. It rewards reading the market correctly — even when
-              you get unlucky — and punishes lucky guesses. The tournament leaderboard crowns whoever actually
-              understands market pricing, not whoever fluked a five-game accumulator.
+              Live Follow/Fade calls and verified code outcomes update an immutable Market IQ history. Replay calls
+              are practice only. The leaderboard crowns whoever repeatedly reads real market movement, not whoever
+              happens to fluke one accumulator.
             </p>
           </div>
           <div className="reveal grid grid-cols-2 gap-4 w-full max-w-md mx-auto lg:mx-0 lg:justify-self-end">
             <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/5 p-5 text-center">
-              <div className="font-mono text-2xl font-bold text-emerald-400">+15</div>
-              <div className="mt-1 text-xs text-gray-400">Smart call, and it won</div>
+              <div className="font-mono text-2xl font-bold text-emerald-400">+10</div>
+              <div className="mt-1 text-xs text-gray-400">Correct live call</div>
             </div>
             <div className="rounded-2xl border border-emerald-500/15 bg-emerald-500/[0.03] p-5 text-center">
-              <div className="font-mono text-2xl font-bold text-emerald-500/80">+5</div>
-              <div className="mt-1 text-xs text-gray-400">Smart call, unlucky</div>
+              <div className="font-mono text-2xl font-bold text-emerald-500/80">0</div>
+              <div className="mt-1 text-xs text-gray-400">Close result, push</div>
             </div>
             <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 text-center">
-              <div className="font-mono text-2xl font-bold text-amber-400">−5</div>
-              <div className="mt-1 text-xs text-gray-400">Lucky, not smart</div>
+              <div className="font-mono text-2xl font-bold text-amber-400">Practice</div>
+              <div className="mt-1 text-xs text-gray-400">Replay, no IQ change</div>
             </div>
             <div className="rounded-2xl border border-rose-500/25 bg-rose-500/5 p-5 text-center">
-              <div className="font-mono text-2xl font-bold text-rose-400">−10</div>
-              <div className="mt-1 text-xs text-gray-400">Wrong, and it lost</div>
+              <div className="font-mono text-2xl font-bold text-rose-400">-5</div>
+              <div className="mt-1 text-xs text-gray-400">Wrong live call</div>
             </div>
           </div>
         </div>

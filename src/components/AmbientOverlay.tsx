@@ -3,11 +3,12 @@
 // competes for attention until a shock fires a bottom sheet.
 'use client'
 
-import React, { useEffect } from 'react'
+import React from 'react'
 import type { Fixture, MatchState, OddsEvent } from '@/lib/txline/types'
 import type { OddsShock } from '@/types'
 import ProbabilityBar from './ProbabilityBar'
 import TeamFlag from './TeamFlag'
+import FollowFade from './FollowFade'
 
 interface AmbientOverlayProps {
   activeFixture: Fixture
@@ -21,11 +22,13 @@ interface AmbientOverlayProps {
   recentUpdates: OddsEvent[]
   /** Total odds ticks this session. */
   updateCount: number
+  latestOdds: OddsEvent | null
+  isDemo: boolean
+  feedStatus: 'connecting' | 'live' | 'reconnecting' | 'stale' | 'complete'
+  lastFeedAgeSeconds: number | null
   activeShock: OddsShock | null
   onDismissShock: () => void
 }
-
-const AUTO_DISMISS_MS = 8000
 
 function isCompletedPhase(phase: Fixture['phase']): boolean {
   return phase === 'F' || phase === 'FET' || phase === 'FPE' || phase === 'C'
@@ -40,15 +43,13 @@ export default function AmbientOverlay({
   hasOdds,
   recentUpdates,
   updateCount,
+  latestOdds,
+  isDemo,
+  feedStatus,
+  lastFeedAgeSeconds,
   activeShock,
   onDismissShock,
 }: AmbientOverlayProps) {
-  useEffect(() => {
-    if (!activeShock) return
-    const timer = setTimeout(onDismissShock, AUTO_DISMISS_MS)
-    return () => clearTimeout(timer)
-  }, [activeShock, onDismissShock])
-
   const team = activeShock ? (activeShock.affectedTeam === 'home' ? activeShock.homeTeam : activeShock.awayTeam) : null
   const buildParams = activeShock ? new URLSearchParams({ matchId: activeShock.matchId, team: activeShock.affectedTeam }) : null
 
@@ -103,9 +104,10 @@ export default function AmbientOverlay({
         {hasOdds && recentUpdates.length > 0 && (
           <div className="mt-5 glass-panel rounded-2xl border border-white/5 p-4">
             <div className="flex items-center justify-between mb-3">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-gray-500">Market pulse</span>
-              <span className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-emerald-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> {updateCount.toLocaleString()} updates
+              <span className='font-mono text-[10px] font-bold uppercase tracking-widest text-gray-500'>TxLINE live market pulse</span>
+              <span className={`flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest ${feedStatus === 'live' ? 'text-emerald-400' : feedStatus === 'stale' ? 'text-amber-400' : 'text-rose-300'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${feedStatus === 'live' ? 'bg-emerald-400 animate-pulse' : feedStatus === 'stale' ? 'bg-amber-400' : 'bg-rose-300'}`} />
+                {feedStatus === 'live' ? `${updateCount.toLocaleString()} updates` : feedStatus === 'stale' ? `stale ${lastFeedAgeSeconds ?? 0}s` : feedStatus}
               </span>
             </div>
             <div className="space-y-1.5">
@@ -151,7 +153,7 @@ export default function AmbientOverlay({
         {activeShock && team && (
           <div
             onClick={(e) => e.stopPropagation()}
-            className="max-w-2xl mx-auto bg-gray-950/95 border border-white/10 rounded-t-2xl shadow-2xl p-6 relative"
+            className='max-h-[88vh] max-w-2xl mx-auto overflow-y-auto bg-gray-950/95 border border-white/10 rounded-t-2xl shadow-2xl p-6 relative'
           >
             <button onClick={onDismissShock} className="absolute right-4 top-4 text-gray-400 hover:text-white transition-colors" aria-label="Close">
               ✕
@@ -174,11 +176,12 @@ export default function AmbientOverlay({
             <p className="text-sm italic text-gray-200 leading-relaxed font-display mb-5">
               &ldquo;{activeShock.explanation || 'Calculating commentary insight...'}&rdquo;
             </p>
+            <FollowFade shock={activeShock} latestOdds={latestOdds} isDemo={isDemo} />
             <a
-              href={`/build?${buildParams?.toString()}`}
-              className="block w-full py-3 rounded-full bg-[#f5c518] hover:bg-[#e2b514] text-black font-display font-bold uppercase tracking-wider text-xs text-center transition-colors"
+              href={isDemo ? '/auth' : `/build?${buildParams?.toString()}`}
+              className='mt-3 block w-full py-3 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-white font-display font-bold uppercase tracking-wider text-xs text-center transition-colors'
             >
-              Act on this →
+              {isDemo ? 'Sign in to build a code →' : 'Add to a verified code →'}
             </a>
           </div>
         )}

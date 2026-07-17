@@ -107,7 +107,7 @@ export default function GuidePage() {
               <p className="text-sm text-gray-400 leading-relaxed">
                 A <strong className="text-gray-200">quiet second screen</strong>. Just the score and a live bar showing
                 each team&apos;s chances — nothing competing with the TV. When the market makes a big move, an alert
-                slides up from the bottom, stays 8 seconds, and gets out of your way.
+                slides up from the bottom and stays until you make a call or close it.
               </p>
               <div className="mt-5 rounded-xl bg-white/[0.03] border border-white/5 p-4">
                 <p className="text-xs text-gray-500 leading-relaxed">
@@ -128,7 +128,7 @@ export default function GuidePage() {
             <div className="font-mono text-[11px] font-bold uppercase tracking-[0.25em] mb-3" style={{ color: GOLD }}>
               The core of the app
             </div>
-            <h2 className="font-display text-3xl font-bold text-white">From a big moment to a shared code</h2>
+            <h2 className='font-display text-3xl font-bold text-white'>From a market shock to a verified fan call</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             <div className="rounded-3xl border border-white/5 bg-[#0f0f0f] p-6">
@@ -142,28 +142,23 @@ export default function GuidePage() {
             </div>
             <div className="rounded-3xl border border-white/5 bg-[#0f0f0f] p-6">
               <StepBadge n="02" />
-              <h3 className="mt-3 font-display text-base font-bold text-white">You act on it</h3>
+              <h3 className='mt-3 font-display text-base font-bold text-white'>You call it</h3>
               <p className="mt-2 text-xs text-gray-400 leading-relaxed">
-                Tap <strong className="text-gray-200">Act on this →</strong> and the pick is pre-filled in the code
-                builder. Type the odds your betting app is currently offering for that same pick.
+                Choose <strong className="text-gray-200">Follow</strong> if the move will hold or <strong className="text-gray-200">Fade</strong> if it will reverse. One live call per shock; no money is involved.
               </p>
             </div>
             <div className="rounded-3xl border border-white/5 bg-[#0f0f0f] p-6">
               <StepBadge n="03" />
-              <h3 className="mt-3 font-display text-base font-bold text-white">LUMIÈRE scores it</h3>
+              <h3 className='mt-3 font-display text-base font-bold text-white'>TxLINE resolves it</h3>
               <p className="mt-2 text-xs text-gray-400 leading-relaxed">
-                Instantly you see your <strong className="text-gray-200">edge</strong>: green means your app&apos;s
-                price beats the live market — a good deal. Red means the bookmaker has the edge. Now you know before
-                you commit to anything.
+                The first full-match 1X2 update after five event-minutes measures how much of the shock remains. The server records the result once, even across reconnects.
               </p>
             </div>
             <div className="rounded-3xl border border-white/5 bg-[#0f0f0f] p-6">
               <StepBadge n="04" />
-              <h3 className="mt-3 font-display text-base font-bold text-white">Share with receipts</h3>
+              <h3 className='mt-3 font-display text-base font-bold text-white'>Share the receipt</h3>
               <p className="mt-2 text-xs text-gray-400 leading-relaxed">
-                One tap sends the code to your group with its edge score attached — plus a public link where everyone
-                watches each pick flip to <span className="text-emerald-400">won</span> or{' '}
-                <span className="text-rose-400">lost</span> live. No more &ldquo;trust me.&rdquo;
+                The result shows the entry probability, resolved probability, percentage of the move that held, and Market IQ change. Share that TxLINE-verified receipt to Telegram.
               </p>
             </div>
           </div>
@@ -177,11 +172,7 @@ export default function GuidePage() {
             </div>
             <h3 className="font-display text-xl font-bold text-white">Being right beats being lucky</h3>
             <p className="mt-3 text-sm text-gray-400 leading-relaxed">
-              Every resolved code updates your score: a smart pick that won is <span className="text-emerald-400 font-mono">+15</span>,
-              a smart pick that lost unluckily still earns <span className="text-emerald-400 font-mono">+5</span>, a lucky guess costs{' '}
-              <span className="text-amber-400 font-mono">−5</span>, and a bad pick that lost costs{' '}
-              <span className="text-rose-400 font-mono">−10</span>. The leaderboard crowns whoever actually reads the
-              market best across the tournament.
+              A correct live Follow/Fade call earns <span className="text-emerald-400 font-mono">+10</span>, a wrong call costs <span className="text-rose-400 font-mono">−5</span>, and a close result is a push. Verified Match Winner code outcomes also contribute through an immutable IQ event. Replay practice never changes the leaderboard.
             </p>
           </div>
           <div className="rounded-3xl border border-white/5 bg-[#0f0f0f] p-8">

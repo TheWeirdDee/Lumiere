@@ -84,7 +84,7 @@ export default function UsernamePage() {
                 setError(null)
               }}
               placeholder="username"
-              className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm font-semibold rounded-xl pl-8 pr-4 py-3.5 focus:outline-none focus:border-[#f5c518] transition-all duration-300 lowercase"
+              className="w-full bg-[#0a0a0a] border border-white/10 text-white text-base font-semibold rounded-xl pl-8 pr-4 py-3.5 focus:outline-none focus:border-[#f5c518] transition-all duration-300 lowercase"
             />
           </div>
           <p className="mt-2 text-[10px] text-gray-500 font-mono">3-20 characters, letters/numbers/underscores only.</p>

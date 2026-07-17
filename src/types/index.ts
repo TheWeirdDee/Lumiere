@@ -19,13 +19,35 @@ export interface OddsShock {
   firedAt: number         // unix timestamp
 }
 
+export type MarketCallChoice = 'follow' | 'fade'
+export type MarketCallStatus = 'pending' | 'won' | 'lost' | 'push'
+
+export interface MarketCall {
+  id: string
+  shockId: string
+  matchId: string
+  userId?: string
+  choice: MarketCallChoice
+  affectedTeam: 'home' | 'away'
+  preProb: number
+  postProb: number
+  targetEventAt: number
+  resolvedProb?: number
+  retention?: number
+  status: MarketCallStatus
+  iqDelta: number
+  verified: boolean
+  createdAt: number
+  resolvedAt?: number
+}
+
 // ---------------------------------------------------------------------------
 // Betting codes
 // ---------------------------------------------------------------------------
 
 export type SelectionType = 'home_win' | 'away_win' | 'draw' | 'over_2.5' | 'under_2.5' | 'btts_yes' | 'btts_no'
 export type Platform = 'sportybet' | 'bet9ja' | '1xbet' | '247bet' | 'other'
-export type CodeStatus = 'pending' | 'active' | 'won' | 'lost' | 'partial'
+export type CodeStatus = 'pending' | 'active' | 'won' | 'lost' | 'partial' | 'void'
 export type SelectionStatus = 'pending' | 'won' | 'lost' | 'void'
 
 export interface Selection {
@@ -38,6 +60,7 @@ export interface Selection {
   txlineProb: number
   platformProb: number
   edge: number
+  edgeVerified?: boolean
   fromShock: boolean
   shockId?: string
   status: SelectionStatus

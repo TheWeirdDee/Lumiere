@@ -13,6 +13,7 @@ import { useAuthUser } from '@/lib/use-auth'
 import { isPrimaryMarket } from '@/lib/primary-market'
 
 type AppMode = 'following' | 'watching'
+type FeedStatus = 'connecting' | 'live' | 'reconnecting' | 'stale' | 'complete'
 
 const STANDARD_REPLAY_SPEED = 1
 const DEMO_REPLAY_SPEED = 5
@@ -49,6 +50,7 @@ function WatchContent() {
   const [activeFixture, setActiveFixture] = useState<Fixture | null>(null)
 
   const [updates, setUpdates] = useState<OddsEvent[]>([])
+  const [updateCount, setUpdateCount] = useState(0)
   const [shocks, setShocks] = useState<OddsShock[]>([])
   const [activeShock, setActiveShock] = useState<OddsShock | null>(null)
   const [scoresState, setScoresState] = useState<MatchState | null>(null)
@@ -72,6 +74,17 @@ function WatchContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [streamError, setStreamError] = useState<string | null>(null)
+  const [feedStatus, setFeedStatus] = useState<FeedStatus>('connecting')
+  const [lastFeedReceivedAt, setLastFeedReceivedAt] = useState<number | null>(null)
+  const [, setHealthClock] = useState(0)
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHealthClock((value) => value + 1)
+      if (feedStatus !== 'complete' && lastFeedReceivedAt && Date.now() - lastFeedReceivedAt > 45_000) setFeedStatus('stale')
+    }, 1_000)
+    return () => clearInterval(timer)
+  }, [feedStatus, lastFeedReceivedAt])
 
   // 1. Load Fixtures List or Demo Metadata
   useEffect(() => {
@@ -141,11 +154,14 @@ function WatchContent() {
     if (!selectedMatchId || !activeFixture) return
 
     setUpdates([])
+    setUpdateCount(0)
     setShocks([])
     setActiveShock(null)
     setScoresState(null)
     setMatchEvents([])
     setStreamError(null)
+    setFeedStatus('connecting')
+    setLastFeedReceivedAt(null)
     seenOddsIds.current.clear()
 
     let scoresSource: EventSource | null = null
@@ -154,6 +170,8 @@ function WatchContent() {
     const handleMatchEvent = (raw: string, applyScore: boolean, applyFixturePhase: boolean) => {
       const data = JSON.parse(raw) as { event: MatchEvent; state: MatchState }
       setStreamError(null)
+      setFeedStatus('live')
+      setLastFeedReceivedAt(Date.now())
       setScoresState(data.state)
       if (applyScore) {
         setActiveFixture((prev) =>
@@ -187,12 +205,17 @@ function WatchContent() {
       if (seenOddsIds.current.has(key)) return
       seenOddsIds.current.add(key)
       setStreamError(null)
-      setUpdates((prev) => [...prev, update])
+      setFeedStatus('live')
+      setLastFeedReceivedAt(Date.now())
+      setUpdateCount((count) => count + 1)
+      setUpdates((prev) => [...prev.slice(-499), update])
     }
 
     const handleMatchState = (raw: string) => {
       const state = JSON.parse(raw) as MatchState
       setStreamError(null)
+      setFeedStatus('live')
+      setLastFeedReceivedAt(Date.now())
       setScoresState(state)
       setActiveFixture((prev) =>
         prev
@@ -210,6 +233,8 @@ function WatchContent() {
       // The relay already attaches the AI explanation server-side before
       // emitting — no client-side fetch or fallback needed here.
       const shock = JSON.parse(raw) as OddsShock
+      setFeedStatus('live')
+      setLastFeedReceivedAt(Date.now())
       setShocks((prev) =>
         prev.some((item) => item.firedAt === shock.firedAt && item.affectedTeam === shock.affectedTeam)
           ? prev
@@ -225,6 +250,17 @@ function WatchContent() {
       } catch {
         setStreamError('The match feed reported an error and is reconnecting.')
       }
+      setFeedStatus('reconnecting')
+    }
+
+    const handleHeartbeat = () => {
+      setFeedStatus('live')
+      setLastFeedReceivedAt(Date.now())
+    }
+
+    const handleNativeError = () => {
+      setFeedStatus('reconnecting')
+      setStreamError('The TxLINE feed connection is reconnecting.')
     }
 
     // A finished match has no live stream to listen to — auto-play its replay
@@ -234,6 +270,8 @@ function WatchContent() {
     if (replayMode) {
       const replaySpeed = isDemo ? DEMO_REPLAY_SPEED : STANDARD_REPLAY_SPEED
       oddsSource = new EventSource(`/api/replay?matchId=${selectedMatchId}&speed=${replaySpeed}`)
+      oddsSource.onopen = () => setFeedStatus('live')
+      oddsSource.addEventListener('heartbeat', handleHeartbeat)
       oddsSource.addEventListener('event', (e) => {
         try {
           handleMatchEvent(e.data, true, false)
@@ -256,10 +294,18 @@ function WatchContent() {
         }
       })
       oddsSource.addEventListener('replay-error', (e) => handleStreamError(e.data))
-      oddsSource.addEventListener('complete', () => oddsSource?.close())
+      oddsSource.addEventListener('complete', () => {
+        setFeedStatus('complete')
+        oddsSource?.close()
+      })
+      oddsSource.onerror = handleNativeError
     } else {
       scoresSource = new EventSource(`/api/scores-relay?matchId=${selectedMatchId}`)
       oddsSource = new EventSource(`/api/odds-relay?matchId=${selectedMatchId}`)
+      scoresSource.onopen = () => setFeedStatus('live')
+      oddsSource.onopen = () => setFeedStatus('live')
+      scoresSource.addEventListener('heartbeat', handleHeartbeat)
+      oddsSource.addEventListener('heartbeat', handleHeartbeat)
 
       scoresSource.addEventListener('state', (e) => {
         try {
@@ -295,6 +341,8 @@ function WatchContent() {
       oddsSource.addEventListener('error', (e) => {
         if (e instanceof MessageEvent) handleStreamError(e.data)
       })
+      scoresSource.onerror = handleNativeError
+      oddsSource.onerror = handleNativeError
     }
 
     return () => {
@@ -391,7 +439,10 @@ function WatchContent() {
           activeFixture={activeFixture}
           scoresState={scoresState}
           latestOdds={currentOdds ?? null}
-          updateCount={updates.length}
+          updateCount={updateCount}
+          isDemo={isDemo}
+          feedStatus={feedStatus}
+          lastFeedAgeSeconds={lastFeedReceivedAt ? Math.max(0, Math.floor((Date.now() - lastFeedReceivedAt) / 1000)) : null}
         />
       ) : (
         <AmbientOverlay
@@ -402,7 +453,11 @@ function WatchContent() {
           awayProb={awayProb}
           hasOdds={!!currentOdds}
           recentUpdates={updates.slice(-5)}
-          updateCount={updates.length}
+          updateCount={updateCount}
+          latestOdds={currentOdds ?? null}
+          isDemo={isDemo}
+          feedStatus={feedStatus}
+          lastFeedAgeSeconds={lastFeedReceivedAt ? Math.max(0, Math.floor((Date.now() - lastFeedReceivedAt) / 1000)) : null}
           activeShock={activeShock}
           onDismissShock={() => setActiveShock(null)}
         />

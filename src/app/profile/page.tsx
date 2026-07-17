@@ -23,10 +23,21 @@ interface CodeSummary {
   created_at: string
 }
 
+interface CallSummary {
+  id: string
+  choice: 'follow' | 'fade'
+  status: 'pending' | 'won' | 'lost' | 'push'
+  iq_delta: number
+  retention: number | null
+  verified: boolean
+  created_at: string
+}
+
 export default function ProfilePage() {
   const { user, loading } = useRequireAuth()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [codes, setCodes] = useState<CodeSummary[]>([])
+  const [calls, setCalls] = useState<CallSummary[]>([])
 
   useEffect(() => {
     if (!user) return
@@ -42,6 +53,14 @@ export default function ProfilePage() {
       .then((r) => r.json())
       .then((d) => setCodes(d.codes || []))
       .catch(() => undefined)
+
+    supabase
+      .from('lumiere_market_calls')
+      .select('id, choice, status, iq_delta, retention, verified, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(10)
+      .then(({ data }) => setCalls((data || []) as CallSummary[]))
   }, [user])
 
   if (loading || !user) {
@@ -79,6 +98,25 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+
+        <div className='space-y-2'>
+          <h3 className='text-xs font-bold uppercase tracking-widest text-[#f5c518]'>Your market calls</h3>
+          {calls.length === 0 ? (
+            <p className='py-6 text-center text-sm text-gray-500'>No verified calls yet. Follow or Fade the next live market shock.</p>
+          ) : (
+            calls.map((call) => (
+              <div key={call.id} className='flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4'>
+                <div>
+                  <div className='text-sm font-bold uppercase text-white'>{call.choice} the move</div>
+                  <div className='mt-0.5 text-[10px] uppercase tracking-wider text-gray-500'>{call.status}{call.retention !== null ? ` | ${Math.round(Number(call.retention) * 100)}% held` : ''}</div>
+                </div>
+                <span className={`font-mono text-sm font-bold ${call.iq_delta > 0 ? 'text-emerald-400' : call.iq_delta < 0 ? 'text-rose-400' : 'text-gray-500'}`}>
+                  {call.verified ? `${call.iq_delta > 0 ? '+' : ''}${call.iq_delta} IQ` : 'Practice'}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
 
         <div className="space-y-2">
           <h3 className="text-xs font-bold uppercase tracking-widest text-[#f5c518]">Your codes</h3>

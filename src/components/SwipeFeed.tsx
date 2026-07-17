@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import type { Chain, Fixture, MatchEvent, MatchState, OddsEvent } from '@/lib/txline/types'
 import type { OddsShock } from '@/types'
+import FollowFade from './FollowFade'
 import TeamFlag from './TeamFlag'
 
 // Lazy-load the Three.js GoalAnimation overlay to avoid blocking initial load
@@ -36,6 +37,9 @@ interface SwipeFeedProps {
   latestOdds: OddsEvent | null
   /** Total odds ticks received this session — visible proof the feed is alive. */
   updateCount: number
+  isDemo: boolean
+  feedStatus: 'connecting' | 'live' | 'reconnecting' | 'stale' | 'complete'
+  lastFeedAgeSeconds: number | null
 }
 
 const getTeamColor = (teamName: string) => {
@@ -53,10 +57,14 @@ function MarketPulse({
   fixture,
   odds,
   updateCount,
+  feedStatus = 'live',
+  lastFeedAgeSeconds = null,
 }: {
   fixture: Fixture | null
   odds: OddsEvent | null
   updateCount: number
+  feedStatus?: SwipeFeedProps['feedStatus']
+  lastFeedAgeSeconds?: number | null
 }) {
   if (!odds || !fixture) return null
   const total = odds.homeProb + odds.drawProb + odds.awayProb || 1
@@ -67,9 +75,10 @@ function MarketPulse({
   return (
     <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.03] p-4">
       <div className="flex items-center justify-between mb-3">
-        <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-gray-500">Market pulse</span>
-        <span className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-emerald-400">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live
+        <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-gray-500">TxLINE market pulse</span>
+        <span className={`flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest ${feedStatus === 'live' ? 'text-emerald-400' : feedStatus === 'stale' ? 'text-amber-400' : 'text-rose-300'}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${feedStatus === 'live' ? 'bg-emerald-400 animate-pulse' : feedStatus === 'stale' ? 'bg-amber-400' : 'bg-rose-300'}`} />
+          {feedStatus === 'stale' ? `Stale ${lastFeedAgeSeconds ?? 0}s` : feedStatus}
         </span>
       </div>
       <div className="h-2 w-full rounded-full overflow-hidden flex bg-gray-900">
@@ -89,7 +98,7 @@ function MarketPulse({
   )
 }
 
-export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresState, latestOdds, updateCount }: SwipeFeedProps) {
+export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresState, latestOdds, updateCount, isDemo, feedStatus, lastFeedAgeSeconds }: SwipeFeedProps) {
   const [feedItems, setFeedItems] = useState<FeedItem[]>([])
   const [addedCodes, setAddedCodes] = useState<Record<string, boolean>>({})
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -228,7 +237,7 @@ export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresSt
 
         {/* Proof of life while waiting: the market ticking in real time */}
         <div className="mt-4 w-full flex justify-center">
-          <MarketPulse fixture={activeFixture} odds={latestOdds} updateCount={updateCount} />
+            <MarketPulse fixture={activeFixture} odds={latestOdds} updateCount={updateCount} feedStatus={feedStatus} lastFeedAgeSeconds={lastFeedAgeSeconds} />
         </div>
       </div>
     )
@@ -244,7 +253,7 @@ export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresSt
           {item.type === 'goal' && <GoalCard event={item.data} activeFixture={activeFixture} scoresState={scoresState} />}
           {item.type === 'red_card' && <RedCardCard event={item.data} />}
           {item.type === 'shock' && (
-            <ShockCard shock={item.data} isAdded={!!addedCodes[item.id]} onAdd={() => handleAddCode(item.id)} />
+            <ShockCard shock={item.data} latestOdds={latestOdds} isDemo={isDemo} isAdded={!!addedCodes[item.id]} onAdd={() => handleAddCode(item.id)} />
           )}
           {item.type === 'corner_cluster' && <CornerClusterCard cluster={item.data} activeFixture={activeFixture} />}
           {item.type === 'possession' && (
@@ -352,11 +361,13 @@ function RedCardCard({ event }: { event: MatchEvent }) {
    ========================================================================== */
 interface ShockCardProps {
   shock: OddsShock
+  latestOdds: OddsEvent | null
+  isDemo: boolean
   isAdded: boolean
   onAdd: () => void
 }
 
-function ShockCard({ shock, isAdded, onAdd }: ShockCardProps) {
+function ShockCard({ shock, latestOdds, isDemo, isAdded, onAdd }: ShockCardProps) {
   const team = shock.affectedTeam === 'home' ? shock.homeTeam : shock.awayTeam
   const params = new URLSearchParams({ matchId: shock.matchId, team: shock.affectedTeam })
 
@@ -396,14 +407,18 @@ function ShockCard({ shock, isAdded, onAdd }: ShockCardProps) {
           <span>After: {Math.round(shock.postProb * 100)}% chances</span>
         </div>
 
+        <div className='mb-3 w-full'>
+          <FollowFade shock={shock} latestOdds={latestOdds} isDemo={isDemo} />
+        </div>
+
         <a
-          href={`/build?${params.toString()}`}
+          href={isDemo ? '/auth' : `/build?${params.toString()}`}
           onClick={onAdd}
-          className={`w-full py-3.5 px-6 rounded-full font-display font-bold uppercase tracking-wider text-xs transition-all duration-200 text-center ${
-            isAdded ? 'bg-emerald-500 text-black shadow-md' : 'bg-[#f5c518] hover:bg-[#e2b514] text-black shadow-lg active:scale-98'
+          className={`w-full py-3.5 px-6 rounded-full border border-white/10 font-display font-bold uppercase tracking-wider text-xs transition-all duration-200 text-center ${
+            isAdded ? 'bg-emerald-500 text-black shadow-md' : 'bg-white/5 hover:bg-white/10 text-white active:scale-98'
           }`}
         >
-          {isAdded ? '✓ Opening code builder…' : 'Act on this →'}
+          {isAdded ? '✓ Opening code builder…' : isDemo ? 'Sign in to build a code →' : 'Add to a verified code →'}
         </a>
       </div>
     </div>

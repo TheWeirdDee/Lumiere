@@ -1,4 +1,3 @@
-// Shared FAQ accordion — used on the landing page and the /guide page.
 import React from 'react'
 
 const GOLD = '#f5c518'
@@ -10,83 +9,69 @@ interface FaqItem {
 
 const FAQ_ITEMS: FaqItem[] = [
   {
-    q: 'Do I actually bet on LUMIÈRE?',
-    a: 'No — and this matters. LUMIÈRE never takes your money, never places a bet, and has no wallet. Betting (if you choose to) happens on your own betting app, like SportyBet or bet9ja. LUMIÈRE is the intelligence sitting next to that: it tells you whether the picks in a code are smart before anyone plays them.',
+    q: 'Do I bet on LUMIERE?',
+    a: 'No. LUMIERE never accepts money or places a wager. It is a second-screen market game and intelligence tool. Any bookmaker action happens separately and remains your decision.',
   },
   {
-    q: 'Is it free?',
-    a: 'Completely. No subscription, no card, nothing to unlock.',
+    q: 'What is Follow or Fade?',
+    a: 'After a large market shock, Follow predicts that at least half of the move will still hold five match minutes later. Fade predicts that it will reverse. The first eligible TxLINE 1X2 update resolves the call.',
   },
   {
-    q: 'What exactly is a "code"?',
-    a: 'When someone builds a set of picks on a betting app (say, "France to win + Over 2.5 goals + Brazil to win"), the app bundles it into one short booking code that friends can copy — that\'s what people share in group chats. On LUMIÈRE, a code is that same bundle plus intelligence: each pick gets an edge score, and the whole code gets a public link that updates live as the matches play.',
-  },
-  {
-    q: 'What are "odds", in plain words?',
-    a: 'Odds are the betting market\'s live opinion about what happens next — like a price that moves. If France score, the market instantly thinks France are more likely to win, and the odds move. During a World Cup match they change every few seconds.',
-  },
-  {
-    q: 'What is an "edge score"?',
-    a: 'It\'s the gap between what your betting app is offering you and what the live market says the pick is really worth. Positive edge (green) means you\'re getting a better deal than the market rate. Negative edge (red) means the bookmaker has priced it against you. It doesn\'t predict the future — it tells you if the price is fair.',
-  },
-  {
-    q: 'What is an "odds shock"?',
-    a: 'When a team\'s chance of winning jumps or drops by 15% or more within 90 seconds — usually right after a goal or a red card — LUMIÈRE fires an alert with one plain-English sentence about what the market just decided. That alert has an "Act on this" button that pre-fills a pick for you.',
-  },
-  {
-    q: 'Where does the data come from?',
-    a: 'From TxLINE by TxODDS — a live feed of scores and consensus betting-market odds for every World Cup match, the same class of data professional trading desks use. LUMIÈRE reads it in real time and translates it into fan language.',
-  },
-  {
-    q: 'Is the replay a simulation?',
-    a: 'No. A replay is the match\'s actual recorded market data — every goal and every odds move, exactly as it happened, played back (usually at 5x speed). Nothing is invented; the shocks fire at the exact moments they fired in real life.',
-  },
-  {
-    q: 'Why does the feed say "waiting for kickoff"?',
-    a: 'Cards only appear when something big happens: a goal, a red card, or a sharp market move. Before kickoff — or during a quiet stretch of the match — there\'s simply nothing to show yet. If you want action right now, open a replay of a finished match instead: it\'s full of real moments.',
-  },
-  {
-    q: 'What are Following and Watching modes?',
-    a: 'Following mode is for when you can\'t watch the match: a full-screen feed you swipe through like TikTok, one big moment per card. Watching mode is for when the match is on your TV: a quiet second screen showing just the score and the live chances bar, with alerts sliding up only when something matters.',
+    q: 'Does a replay affect Market IQ?',
+    a: 'No. Replays use real recorded TxLINE events and the same resolution formula, but they are clearly treated as practice. Only time-limited calls made on a live shock can change the leaderboard.',
   },
   {
     q: 'What is Market IQ?',
-    a: 'A score that measures whether you read the market well — not just whether you won. A smart pick that wins earns +15; a smart pick that loses unluckily still earns +5; a lucky guess costs −5; a bad pick that loses costs −10. The leaderboard ranks the sharpest readers of the market, not the luckiest.',
+    a: 'An auditable score built from TxLINE-verified calls and supported code selections. A correct live Follow/Fade call earns 10 points, a wrong call loses 5, and a close result is a push. Every award has a unique server-side event so reconnects cannot score twice.',
   },
   {
-    q: 'Why is there no Telegram login button sometimes?',
-    a: 'Telegram itself only shows its login button on the app\'s officially registered website domain. If you\'re on a preview or local copy, use Email instead — on the real site it appears normally.',
+    q: 'What is an odds shock?',
+    a: 'A team win probability moving by at least 15 percentage points inside a rolling 90-second TxLINE window. LUMIERE stores the before value, after value, affected team, event time and explanation.',
   },
   {
-    q: 'Do I need Telegram to use LUMIÈRE?',
-    a: 'No. Telegram makes sharing effortless (and @LumiereWorldCupBot can expand codes right inside your group), but you can sign in with email and share code links anywhere — WhatsApp, iMessage, wherever your group lives.',
+    q: 'Which edge markets are verified?',
+    a: 'Match Winner only: home win, draw or away win. LUMIERE hides goals and both-teams-to-score edge scoring until those TxLINE fields are verified instead of guessing their schema.',
   },
   {
-    q: 'Can I use LUMIÈRE without betting at all?',
-    a: 'Absolutely. Plenty of people just want to feel the match: the swipe feed, the goal moments, and the market\'s live mood are a genuinely fun way to follow a game even if you never touch a betting app.',
+    q: 'How do public codes update?',
+    a: 'TxLINE score states settle supported selections on the server at full time. Public pages poll the verified result, and Telegram groups that expanded the code receive its final status.',
+  },
+  {
+    q: 'Where does the data come from?',
+    a: 'TxLINE by TxODDS. The interface shows feed health, event timestamps and update counts so you can distinguish a live connection, a reconnect and a stale feed.',
+  },
+  {
+    q: 'How does Telegram login work?',
+    a: 'Open @LumiereWorldCupBot from the sign-in page and tap Start. The bot sends a signed LUM1 code that expires after ten minutes and only works in the browser that requested it. It is not an SMS or Telegram phone-number code.',
+  },
+  {
+    q: 'What can the Telegram bot do?',
+    a: 'It expands LUMIERE code links, returns current TxLINE 1X2 odds with /odds, shows recent shocks, displays the Market IQ leaderboard and lets groups subscribe with /followmatch.',
+  },
+  {
+    q: 'Is the replay simulated?',
+    a: 'No. It is recorded TxLINE scores and odds passed through the same normalizer, shock detector and Follow/Fade rules as live data. Demo playback is accelerated so the complete loop fits in a short walkthrough.',
+  },
+  {
+    q: 'Is LUMIERE free?',
+    a: 'The fan experience is currently free. Affiliate destinations and sponsored shock slots appear only after approved partner settings are configured; no paid tipster subscription is currently sold.',
   },
 ]
 
 export default function Faq() {
   return (
-    <div className="max-w-3xl mx-auto space-y-3">
+    <div className='mx-auto max-w-3xl space-y-3'>
       {FAQ_ITEMS.map((item) => (
-        <details
-          key={item.q}
-          className="group rounded-2xl border border-white/5 bg-[#0f0f0f] open:border-[#f5c518]/25 transition-colors"
-        >
-          <summary className="flex items-center justify-between gap-4 cursor-pointer select-none list-none px-6 py-4 [&::-webkit-details-marker]:hidden">
-            <span className="text-sm font-semibold text-white font-display">{item.q}</span>
-            <span
-              className="shrink-0 w-6 h-6 rounded-full border flex items-center justify-center transition-transform group-open:rotate-45"
-              style={{ borderColor: 'rgba(245,197,24,0.4)', color: GOLD }}
-            >
-              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <path strokeLinecap="round" d="M12 5v14M5 12h14" />
+        <details key={item.q} className='group rounded-2xl border border-white/5 bg-[#0f0f0f] transition-colors open:border-[#f5c518]/25'>
+          <summary className='flex cursor-pointer list-none select-none items-center justify-between gap-4 px-6 py-4 [&::-webkit-details-marker]:hidden'>
+            <span className='font-display text-sm font-semibold text-white'>{item.q}</span>
+            <span className='flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-transform group-open:rotate-45' style={{ borderColor: 'rgba(245,197,24,0.4)', color: GOLD }}>
+              <svg className='h-3 w-3' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5'>
+                <path strokeLinecap='round' d='M12 5v14M5 12h14' />
               </svg>
             </span>
           </summary>
-          <div className="px-6 pb-5 text-sm text-gray-400 leading-relaxed">{item.a}</div>
+          <div className='px-6 pb-5 text-sm leading-relaxed text-gray-400'>{item.a}</div>
         </details>
       ))}
     </div>

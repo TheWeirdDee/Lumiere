@@ -25,10 +25,6 @@ const SELECTION_TYPES: { value: SelectionType; label: string }[] = [
   { value: 'home_win', label: 'Home to win' },
   { value: 'draw', label: 'Draw' },
   { value: 'away_win', label: 'Away to win' },
-  { value: 'over_2.5', label: 'Over 2.5 goals' },
-  { value: 'under_2.5', label: 'Under 2.5 goals' },
-  { value: 'btts_yes', label: 'Both teams to score' },
-  { value: 'btts_no', label: 'Both teams not to score' },
 ]
 
 function isSelectable(phase: Fixture['phase']): boolean {
@@ -95,6 +91,9 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
         body: JSON.stringify({ matchId, selectionType, platformOdds: odds }),
       })
       const data = await res.json()
+      if (!res.ok || !data.available) {
+        throw new Error(data.reason || data.error || 'TxLINE Match Winner odds are not open yet')
+      }
 
       const platformProb = 1 / odds
       const newSelection: Selection = {
@@ -103,16 +102,13 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
         awayTeam: activeMatch.awayTeam,
         selectionType,
         platformOdds: odds,
-        txlineProb: data.available ? data.txlineProb : platformProb,
+        txlineProb: data.txlineProb,
         platformProb,
-        edge: data.available ? data.edge : 0,
+        edge: data.edge,
+        edgeVerified: true,
         fromShock: Boolean(prefillMatchId && matchId === prefillMatchId),
         status: 'pending',
       }
-      // Selections where live TxLINE odds aren't available for the market are
-      // still added (so the code isn't blocked), just scored as unavailable.
-      if (!data.available) newSelection.edge = 0
-
       setSelections((prev) => [...prev, newSelection])
       setOddsInput('')
     } catch {
@@ -173,6 +169,7 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
         .join('\n')
 
       window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(message)}`, '_blank')
+      void fetch(`/api/codes/${encodeURIComponent(lumiereCode)}`, { method: 'POST' }).catch(() => undefined)
       router.push(`/code/${lumiereCode}`)
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : String(err))
@@ -206,7 +203,7 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
             value={platformCode}
             onChange={(e) => setPlatformCode(e.target.value)}
             placeholder="e.g. XYZ123"
-            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm font-mono rounded-xl px-4 py-3 focus:outline-none focus:border-[#f5c518]"
+            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-base font-mono rounded-xl px-4 py-3 focus:outline-none focus:border-[#f5c518]"
           />
           <p className="mt-2 text-[11px] leading-relaxed text-gray-500">
             Get this from the booking/share option on your SportyBet, bet9ja, 1xBet or 247Bet slip.
@@ -224,7 +221,7 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
           <select
             value={matchId}
             onChange={(e) => setMatchId(e.target.value)}
-            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-[#f5c518]"
+            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-base rounded-xl px-4 py-3 focus:outline-none focus:border-[#f5c518]"
           >
             <option value="">Select a match</option>
             {fixtures.map((f) => (
@@ -233,6 +230,9 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
               </option>
             ))}
           </select>
+          <p className='mt-2 text-[11px] text-gray-500'>
+            Match Winner is the verified TxLINE market available today. Goal and BTTS markets stay hidden until their live schema is verified.
+          </p>
         </div>
 
         <div>
@@ -240,7 +240,7 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
           <select
             value={selectionType}
             onChange={(e) => setSelectionType(e.target.value as SelectionType)}
-            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-[#f5c518]"
+            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-base rounded-xl px-4 py-3 focus:outline-none focus:border-[#f5c518]"
           >
             {SELECTION_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
@@ -259,7 +259,7 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
             value={oddsInput}
             onChange={(e) => setOddsInput(e.target.value)}
             placeholder="2.10"
-            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-sm font-mono rounded-xl px-4 py-3 focus:outline-none focus:border-[#f5c518]"
+            className="w-full bg-[#0a0a0a] border border-white/10 text-white text-base font-mono rounded-xl px-4 py-3 focus:outline-none focus:border-[#f5c518]"
           />
         </div>
 

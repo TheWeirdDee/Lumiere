@@ -30,6 +30,7 @@ const PLATFORM_LABELS: Record<string, string> = {
 
 export default function CodeCard({ lumiereCode, creatorUsername, platform, platformCode, overallEdge, status, selections }: CodeCardProps) {
   const [copied, setCopied] = useState(false)
+  const affiliateEnabled = process.env.NEXT_PUBLIC_AFFILIATE_LINKS_ENABLED === 'true'
 
   const handleCopy = () => {
     if (!platformCode) return
@@ -37,6 +38,13 @@ export default function CodeCard({ lumiereCode, creatorUsername, platform, platf
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
+  }
+
+  const handleShare = () => {
+    const link = window.location.href
+    const text = `Track ${lumiereCode} by @${creatorUsername} live on LUMIERE.`
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`, '_blank')
+    void fetch(`/api/codes/${encodeURIComponent(lumiereCode)}`, { method: 'POST' }).catch(() => undefined)
   }
 
   return (
@@ -76,6 +84,22 @@ export default function CodeCard({ lumiereCode, creatorUsername, platform, platf
           {copied ? '✓ Copied' : `Copy ${PLATFORM_LABELS[platform] || platform} code: ${platformCode}`}
         </button>
       )}
+
+      <div className='grid gap-2 sm:grid-cols-2'>
+        <button onClick={handleShare} className='w-full rounded-xl border border-[#229ED9]/30 bg-[#229ED9]/10 py-3 text-xs font-bold uppercase tracking-widest text-[#65bce6] hover:bg-[#229ED9]/20'>
+          Share to Telegram
+        </button>
+        {affiliateEnabled && platform !== 'other' && (
+          <a
+            href={`/api/out/${encodeURIComponent(platform)}?lumiereCode=${encodeURIComponent(lumiereCode)}&bookingCode=${encodeURIComponent(platformCode || '')}`}
+            target='_blank'
+            rel='sponsored noreferrer'
+            className='w-full rounded-xl border border-[#f5c518]/30 bg-[#f5c518]/10 py-3 text-center text-xs font-bold uppercase tracking-widest text-[#f5c518] hover:bg-[#f5c518]/20'
+          >
+            Open in {PLATFORM_LABELS[platform] || platform}
+          </a>
+        )}
+      </div>
     </div>
   )
 }
