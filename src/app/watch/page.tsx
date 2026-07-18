@@ -167,12 +167,92 @@ function WatchContent() {
     let scoresSource: EventSource | null = null
     let oddsSource: EventSource | null = null
 
+    // A finished match has no live stream to listen to — auto-play its replay
+    // (the real recorded data) instead of sitting on a feed that never speaks.
+    const replayMode = isDemo || isCompletedPhase(activeFixture.phase)
+
+    // Replay resume: navigating to /profile or /guide unmounts this page and
+    // would restart the replay from kickoff. Persist position + accumulated
+    // feed state per match in sessionStorage and resume via the replay API's
+    // startAt parameter. Live streams are untouched.
+    const checkpointKey = `lumiere_replay_state_${selectedMatchId}`
+    let ckptEvents: MatchEvent[] = []
+    let ckptShocks: OddsShock[] = []
+    let ckptScores: MatchState | null = null
+    let ckptUpdates: OddsEvent[] = []
+    let ckptCount = 0
+    let ckptAt = 0
+    let lastCkptWrite = 0
+
+    let resumeAt: number | undefined
+    if (replayMode) {
+      try {
+        const raw = sessionStorage.getItem(checkpointKey)
+        if (raw) {
+          const saved = JSON.parse(raw) as {
+            at: number
+            scoresState: MatchState | null
+            matchEvents: MatchEvent[]
+            shocks: OddsShock[]
+            updates: OddsEvent[]
+            updateCount: number
+          }
+          if (typeof saved.at === 'number' && saved.at > 0) {
+            resumeAt = saved.at + 1
+            ckptAt = saved.at
+            ckptEvents = saved.matchEvents ?? []
+            ckptShocks = saved.shocks ?? []
+            ckptScores = saved.scoresState ?? null
+            ckptUpdates = saved.updates ?? []
+            ckptCount = saved.updateCount ?? 0
+            setMatchEvents(ckptEvents)
+            setShocks(ckptShocks)
+            setScoresState(ckptScores)
+            setUpdates(ckptUpdates)
+            setUpdateCount(ckptCount)
+            const restoredScores = ckptScores
+            if (restoredScores) {
+              setActiveFixture((prev) =>
+                prev ? { ...prev, homeScore: restoredScores.homeScore, awayScore: restoredScores.awayScore } : prev
+              )
+            }
+          }
+        }
+      } catch {
+        sessionStorage.removeItem(checkpointKey)
+      }
+    }
+
+    const writeCheckpoint = (at: number, force = false) => {
+      if (!replayMode || at <= 0) return
+      ckptAt = Math.max(ckptAt, at)
+      const now = Date.now()
+      if (!force && now - lastCkptWrite < 3_000) return
+      lastCkptWrite = now
+      try {
+        sessionStorage.setItem(
+          checkpointKey,
+          JSON.stringify({
+            at: ckptAt,
+            scoresState: ckptScores,
+            matchEvents: ckptEvents,
+            shocks: ckptShocks,
+            updates: ckptUpdates.slice(-5),
+            updateCount: ckptCount,
+          })
+        )
+      } catch {
+        // sessionStorage full or unavailable — resume stays best-effort.
+      }
+    }
+
     const handleMatchEvent = (raw: string, applyScore: boolean, applyFixturePhase: boolean) => {
       const data = JSON.parse(raw) as { event: MatchEvent; state: MatchState }
       setStreamError(null)
       setFeedStatus('live')
       setLastFeedReceivedAt(Date.now())
       setScoresState(data.state)
+      ckptScores = data.state
       if (applyScore) {
         setActiveFixture((prev) =>
           prev
@@ -195,7 +275,14 @@ function WatchContent() {
           if (exists) return prev
           return [...prev, data.event]
         })
+        const duplicate = ckptEvents.some(
+          (item) =>
+            (item.timestamp === data.event.timestamp && item.type === data.event.type) ||
+            (item.data?.seq !== undefined && item.data?.seq === data.event.data?.seq)
+        )
+        if (!duplicate) ckptEvents = [...ckptEvents, data.event]
       }
+      writeCheckpoint(data.event?.timestamp ?? data.state.lastUpdated)
     }
 
     const handleOdds = (raw: string) => {
@@ -209,6 +296,9 @@ function WatchContent() {
       setLastFeedReceivedAt(Date.now())
       setUpdateCount((count) => count + 1)
       setUpdates((prev) => [...prev.slice(-499), update])
+      ckptCount += 1
+      ckptUpdates = [...ckptUpdates.slice(-4), update]
+      writeCheckpoint(update.timestamp)
     }
 
     const handleMatchState = (raw: string) => {
@@ -241,6 +331,10 @@ function WatchContent() {
           : [...prev, shock]
       )
       setActiveShock(shock)
+      if (!ckptShocks.some((item) => item.firedAt === shock.firedAt && item.affectedTeam === shock.affectedTeam)) {
+        ckptShocks = [...ckptShocks, shock]
+      }
+      writeCheckpoint(shock.firedAt)
     }
 
     const handleStreamError = (raw: string) => {
@@ -263,13 +357,10 @@ function WatchContent() {
       setStreamError('The TxLINE feed connection is reconnecting.')
     }
 
-    // A finished match has no live stream to listen to — auto-play its replay
-    // (the real recorded data) instead of sitting on a feed that never speaks.
-    const replayMode = isDemo || isCompletedPhase(activeFixture.phase)
-
     if (replayMode) {
       const replaySpeed = isDemo ? DEMO_REPLAY_SPEED : STANDARD_REPLAY_SPEED
-      oddsSource = new EventSource(`/api/replay?matchId=${selectedMatchId}&speed=${replaySpeed}`)
+      const resumeParam = resumeAt !== undefined ? `&startAt=${resumeAt}` : ''
+      oddsSource = new EventSource(`/api/replay?matchId=${selectedMatchId}&speed=${replaySpeed}${resumeParam}`)
       oddsSource.onopen = () => setFeedStatus('live')
       oddsSource.addEventListener('heartbeat', handleHeartbeat)
       oddsSource.addEventListener('event', (e) => {
@@ -296,6 +387,13 @@ function WatchContent() {
       oddsSource.addEventListener('replay-error', (e) => handleStreamError(e.data))
       oddsSource.addEventListener('complete', () => {
         setFeedStatus('complete')
+        // A finished replay starts fresh next time rather than resuming at the end.
+        try {
+          sessionStorage.removeItem(checkpointKey)
+        } catch {
+          // Ignore storage errors.
+        }
+        ckptAt = 0
         oddsSource?.close()
       })
       oddsSource.onerror = handleNativeError
@@ -346,6 +444,8 @@ function WatchContent() {
     }
 
     return () => {
+      // Flush the throttled checkpoint so navigation resumes at the exact spot.
+      writeCheckpoint(ckptAt, true)
       scoresSource?.close()
       oddsSource?.close()
     }

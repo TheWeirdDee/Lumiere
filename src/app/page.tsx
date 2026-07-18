@@ -266,11 +266,11 @@ export default function HomePage() {
               {user ? 'My profile' : 'Sign in'}
             </Link>
             <Link
-              href="/watch?demo=true"
+              href="/watch"
               className="flex items-center gap-1.5 px-4 py-2 rounded-full font-display text-[11px] font-bold uppercase tracking-widest transition-transform active:scale-95"
               style={{ background: GOLD, color: '#080808' }}
             >
-              <PlayIcon className="w-2.5 h-2.5" /> Watch demo
+              Open app →
             </Link>
           </div>
         </div>
@@ -365,9 +365,9 @@ export default function HomePage() {
               Every goal. Every shock. Every shift in the market.
             </p>
             <p className="hero-rise mt-6 text-sm md:text-base text-gray-400 leading-relaxed max-w-lg" style={{ animationDelay: '0.4s' }}>
-              LUMIÈRE turns live TxLINE data into a second-screen fan experience. When the odds move sharply, read
-              the moment and Follow or Fade — five event-minutes later the market settles your call and builds your
-              Market IQ.
+              LUMIÈRE turns live TxLINE data into a second-screen fan experience. When the market moves sharply,
+              make your Follow or Fade call. Five event-minutes later, the next market movement reveals whether you
+              read the game correctly — and builds your Market IQ.
             </p>
             <div className="hero-rise mt-9 flex flex-col sm:flex-row items-center gap-4" style={{ animationDelay: '0.52s' }}>
               <Link
@@ -400,6 +400,19 @@ export default function HomePage() {
                 <div className="text-[10px] uppercase tracking-widest text-gray-500">Odds tick</div>
               </div>
             </div>
+
+            {/* Market IQ teaser — just enough to make people ask what it is */}
+            <a
+              href="#market-iq"
+              className="hero-rise mt-7 inline-flex items-center gap-4 rounded-2xl border px-5 py-3 font-mono transition-colors hover:bg-[#f5c518]/[0.09]"
+              style={{ animationDelay: '0.72s', borderColor: 'rgba(245,197,24,0.2)', background: 'rgba(245,197,24,0.05)' }}
+            >
+              <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">Market IQ</span>
+              <span className="text-xl font-bold" style={{ color: GOLD }}>920</span>
+              <span className="w-px h-6 bg-white/10" />
+              <span className="text-[11px] text-gray-400">Accuracy 74% · Streak 6 · Top 8%</span>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-gray-500">What&apos;s this? ↓</span>
+            </a>
           </div>
 
           {/* Right: live event card stack */}
@@ -453,7 +466,7 @@ export default function HomePage() {
                 </div>
 
                 <p className="mt-5 text-xs text-gray-500 leading-relaxed">
-                  Every big moment becomes a card like this — with one plain-English line about what the market just did.
+                  Every goal, red card and market shock becomes a card you can understand in seconds.
                 </p>
               </div>
             </div>
@@ -579,13 +592,12 @@ export default function HomePage() {
               &ldquo;Here&apos;s my code. Trust me.&rdquo;
             </h2>
             <p className="mt-5 text-sm md:text-base text-gray-400 leading-relaxed max-w-xl">
-              Every match day, millions of fans build accumulators on SportyBet, bet9ja and 1xBet and drop the booking
-              code in the group chat. No context. No track record. No way to tell a sharp pick from a lucky one — and
-              everyone copies it anyway.
+              Every weekend, group chats fill with booking codes. &ldquo;Trust me.&rdquo; No context. No track
+              record. No proof. Everyone copies them anyway.
             </p>
             <p className="mt-4 text-sm md:text-base text-gray-400 leading-relaxed max-w-xl">
-              LUMIÈRE doesn&apos;t take bets and doesn&apos;t hold money. It&apos;s the intelligence layer on top of
-              what your group already does.
+              LUMIÈRE doesn&apos;t replace betting apps — and it never takes bets or holds money. It helps fans
+              understand the market behind the picks they already share.
             </p>
           </div>
 
@@ -638,13 +650,30 @@ export default function HomePage() {
             </div>
 
             <div className="reveal rounded-3xl border border-white/5 bg-[#0f0f0f] p-7 hover:border-white/15 transition-colors" style={{ transitionDelay: '60ms' }}>
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-5" style={{ background: 'rgba(245,197,24,0.1)', border: '1px solid rgba(245,197,24,0.25)', color: GOLD }}>
+                <TrendIcon />
+              </div>
+              <h3 className="font-display text-lg font-bold text-white">Follow or Fade — and Market IQ</h3>
+              <p className="mt-2.5 text-sm text-gray-400 leading-relaxed">
+                Every shock opens a short call: will the move hold, or has the market overreacted? Five event-minutes
+                later the market itself settles it, and every verified result builds your permanent Market IQ.
+              </p>
+              <div className="mt-4 flex items-center gap-2 font-mono text-xs">
+                <span className="px-2.5 py-1 rounded-full font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Follow</span>
+                <span className="px-2.5 py-1 rounded-full font-bold uppercase tracking-wider bg-rose-500/15 text-rose-400 border border-rose-500/30">Fade</span>
+                <span className="ml-auto text-gray-400">Correct <span className="text-emerald-400">+10 IQ</span></span>
+              </div>
+            </div>
+
+            <div className="reveal rounded-3xl border border-white/5 bg-[#0f0f0f] p-7 hover:border-white/15 transition-colors">
               <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-5 bg-emerald-500/10 border border-emerald-500/25 text-emerald-400">
                 <TrendIcon />
               </div>
-              <h3 className='font-display text-lg font-bold text-white'>Verified 1X2 edge on supported codes</h3>
+              <h3 className='font-display text-lg font-bold text-white'>Verified Match Winner edge</h3>
               <p className="mt-2.5 text-sm text-gray-400 leading-relaxed">
                 Type in the odds your betting app is offering. LUMIÈRE compares them against the live market and stamps
                 each pick green — you&apos;re getting value — or red — the bookmaker has the edge.
+                <span className="block mt-1.5 text-xs text-gray-500">Currently supports the Match Winner (1X2) market only.</span>
               </p>
               <div className="mt-4 flex items-center gap-2 flex-wrap">
                 <TeamFlag team="France" size={18} />
@@ -677,7 +706,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="reveal rounded-3xl border border-white/5 bg-[#0f0f0f] p-7 hover:border-white/15 transition-colors" style={{ transitionDelay: '60ms' }}>
+            <div className="reveal md:col-span-2 rounded-3xl border border-white/5 bg-[#0f0f0f] p-7 hover:border-white/15 transition-colors" style={{ transitionDelay: '60ms' }}>
               <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-5" style={{ background: 'rgba(34,158,217,0.1)', border: '1px solid rgba(34,158,217,0.3)', color: '#229ED9' }}>
                 <TelegramIcon />
               </div>
@@ -719,7 +748,7 @@ export default function HomePage() {
             </div>
             <div className="reveal rounded-3xl border border-white/5 bg-[#0f0f0f] p-7" style={{ transitionDelay: '80ms' }}>
               <div className="font-mono text-3xl font-bold mb-4" style={{ color: GOLD }}>02</div>
-              <h3 className='font-display text-lg font-bold text-white'>Follow or Fade the shock</h3>
+              <h3 className='font-display text-lg font-bold text-white'>Read the market. Follow or Fade.</h3>
               <p className="mt-2.5 text-sm text-gray-400 leading-relaxed">
                 A shock fires? Predict whether the move will hold or reverse. Five TxLINE event-minutes later, the
                 next eligible market update verifies the result and updates Market IQ. No money and no result guessed by the app.
@@ -781,8 +810,8 @@ export default function HomePage() {
               Not &ldquo;did you win&rdquo; —<br />&ldquo;were you right?&rdquo;
             </h2>
             <p className="mt-5 text-sm md:text-base text-gray-400 leading-relaxed max-w-xl">
-              Live Follow/Fade calls and verified code outcomes update an immutable Market IQ history. Replay calls
-              are practice only. The leaderboard crowns whoever repeatedly reads real market movement, not whoever
+              Every verified live Follow or Fade call becomes part of your permanent Market IQ history. Replay is
+              always practice. The leaderboard crowns whoever repeatedly reads real market movement, not whoever
               happens to fluke one accumulator.
             </p>
           </div>
@@ -871,7 +900,11 @@ export default function HomePage() {
           <div className="text-center md:text-left">
             <LogoWordmark size={22} textClassName="text-sm" />
             <div className="mt-2 font-mono text-[11px] text-gray-600">
-              Built for the TxODDS World Cup Hackathon 2026 · Powered by TxLINE live data
+              Built for the TxODDS World Cup Hackathon 2026
+            </div>
+            <div className="mt-1 font-mono text-[11px] text-gray-500">
+              Powered by <span className="text-gray-300 font-bold">TxLINE</span> — real-time World Cup scores · live
+              odds · historical replay
             </div>
           </div>
           <div className="flex items-center flex-wrap justify-center gap-6 text-[11px] font-bold uppercase tracking-widest text-gray-400">
