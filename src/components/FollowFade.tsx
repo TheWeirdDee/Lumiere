@@ -5,6 +5,7 @@ import type { OddsEvent } from '@/lib/txline/types'
 import type { MarketCall, MarketCallChoice, OddsShock } from '@/types'
 import { MARKET_CALL_HORIZON_MS, resolveMarketCall } from '@/lib/market-call-rules'
 import { useAuthUser } from '@/lib/use-auth'
+import { getSupabaseBrowser } from '@/lib/supabase-browser'
 
 interface FollowFadeProps {
   shock: OddsShock
@@ -26,6 +27,7 @@ export default function FollowFade({ shock, latestOdds, isDemo }: FollowFadeProp
   const [call, setCall] = useState<MarketCall | null>(null)
   const [busy, setBusy] = useState<MarketCallChoice | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [streak, setStreak] = useState<number | null>(null)
   const [, setClock] = useState(0)
   const team = shock.affectedTeam === 'home' ? shock.homeTeam : shock.awayTeam
   const storageKey = useMemo(() => localKey(shock), [shock])
@@ -85,6 +87,28 @@ export default function FollowFade({ shock, latestOdds, isDemo }: FollowFadeProp
     const timer = setInterval(() => setClock((value) => value + 1), 1_000)
     return () => clearInterval(timer)
   }, [])
+
+  // Presentation-only: read the current win streak once a verified result lands.
+  const resolvedStatus = call?.status
+  useEffect(() => {
+    if (!user || !call || !call.verified || resolvedStatus === 'pending') return
+    getSupabaseBrowser()
+      .from('lumiere_market_calls')
+      .select('status, verified')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        if (!data) return
+        let run = 0
+        for (const row of data) {
+          if (!row.verified || row.status === 'push' || row.status === 'pending') continue
+          if (row.status === 'won') run += 1
+          else break
+        }
+        setStreak(run)
+      })
+  }, [user, call, resolvedStatus])
 
   const choose = async (choice: MarketCallChoice) => {
     setBusy(choice)
@@ -170,20 +194,37 @@ export default function FollowFade({ shock, latestOdds, isDemo }: FollowFadeProp
   }
 
   const resultText = call.status === 'push' ? 'Push' : call.status === 'won' ? 'Correct call' : 'Wrong call'
+  const headline = call.status === 'won' ? '🔥 Great read' : call.status === 'lost' ? 'The market beat you' : 'Too close to call'
+  const narrative =
+    call.status === 'won'
+      ? call.choice === 'follow'
+        ? 'The market kept moving your way.'
+        : 'The market pulled back, just like you called it.'
+      : call.status === 'lost'
+        ? call.choice === 'follow'
+          ? 'The move faded before the horizon.'
+          : 'The move held — the market meant it.'
+        : 'The movement settled right on the line. No points either way.'
   const shareText = `${resultText}: I ${call.choice.toUpperCase()}D ${team}'s market move on LUMIERE. ${retentionPercent ?? 0}% held after five minutes.`
   const shareUrl = typeof window === 'undefined' ? `${process.env.NEXT_PUBLIC_APP_URL || ''}/watch?match=${encodeURIComponent(shock.matchId)}` : window.location.href
   return (
-    <div className='rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-center'>
+    <div className={`animate-flip rounded-2xl border p-4 text-center ${call.status === 'won' ? 'border-emerald-400/25 bg-emerald-400/[0.05]' : 'border-white/10 bg-white/[0.04]'}`}>
       <div className='font-mono text-[10px] font-bold uppercase tracking-widest text-[#f5c518]'>
         {call.verified ? 'TxLINE verified result' : 'TxLINE replay result'}
       </div>
       <div className={`mt-2 text-xl font-black uppercase ${call.status === 'won' ? 'text-emerald-400' : call.status === 'lost' ? 'text-rose-400' : 'text-gray-300'}`}>
-        {resultText}
+        {headline}
       </div>
-      <p className='mt-1 text-xs text-gray-300'>{retentionPercent}% of the original move held</p>
-      <p className='mt-1 font-mono text-xs text-[#f5c518]'>
+      <p className='mt-1 text-xs text-gray-300'>{narrative}</p>
+      <p className='mt-1 text-xs text-gray-400'>{retentionPercent}% of the original move held</p>
+      <p className='mt-2 font-mono text-sm font-bold text-[#f5c518]'>
         {call.verified ? `${call.iqDelta >= 0 ? '+' : ''}${call.iqDelta} Market IQ` : 'Practice result — leaderboard unchanged'}
       </p>
+      {call.verified && streak !== null && streak >= 2 && (
+        <p className='mt-1 font-mono text-[11px] font-bold uppercase tracking-widest text-emerald-400'>
+          Current streak: {streak}
+        </p>
+      )}
       <a href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`} target='_blank' rel='noreferrer' className='mt-3 inline-block text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-white'>
         Share result to Telegram →
       </a>

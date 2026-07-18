@@ -4,8 +4,9 @@
 'use client'
 
 import React from 'react'
-import type { Fixture, MatchState, OddsEvent } from '@/lib/txline/types'
+import type { Fixture, MatchEvent, MatchState, OddsEvent } from '@/lib/txline/types'
 import type { OddsShock } from '@/types'
+import { inferShockCause, marketTagline } from '@/lib/shock-cause'
 import ProbabilityBar from './ProbabilityBar'
 import TeamFlag from './TeamFlag'
 import FollowFade from './FollowFade'
@@ -20,6 +21,8 @@ interface AmbientOverlayProps {
   hasOdds: boolean
   /** Most recent odds ticks (newest last) — rendered as the live pulse list. */
   recentUpdates: OddsEvent[]
+  /** Match events this session — used to explain what moved the market. */
+  matchEvents: MatchEvent[]
   /** Total odds ticks this session. */
   updateCount: number
   latestOdds: OddsEvent | null
@@ -42,6 +45,7 @@ export default function AmbientOverlay({
   awayProb,
   hasOdds,
   recentUpdates,
+  matchEvents,
   updateCount,
   latestOdds,
   isDemo,
@@ -52,6 +56,8 @@ export default function AmbientOverlay({
 }: AmbientOverlayProps) {
   const team = activeShock ? (activeShock.affectedTeam === 'home' ? activeShock.homeTeam : activeShock.awayTeam) : null
   const buildParams = activeShock ? new URLSearchParams({ matchId: activeShock.matchId, team: activeShock.affectedTeam }) : null
+  const shockCause = activeShock ? inferShockCause(activeShock, matchEvents) : null
+  const tagline = hasOdds ? marketTagline({ recentUpdates, matchEvents, activeShock, latestOdds }) : null
 
   return (
     <div className="min-h-screen bg-[#080808] flex flex-col items-center justify-center px-6 py-24 relative overflow-hidden">
@@ -80,15 +86,34 @@ export default function AmbientOverlay({
         </div>
       </div>
 
-      {/* Live probability bar — always visible */}
+      {/* Live probability bar — always visible; glows briefly while a shock is on screen */}
       <div className="w-full max-w-lg">
-        <ProbabilityBar
-          homeTeam={activeFixture.homeTeam}
-          awayTeam={activeFixture.awayTeam}
-          homeProb={homeProb}
-          drawProb={drawProb}
-          awayProb={awayProb}
-        />
+        <div
+          className={`rounded-xl transition-shadow duration-700 ${
+            activeShock ? 'shadow-[0_0_45px_rgba(245,197,24,0.30)]' : 'shadow-none'
+          }`}
+        >
+          <ProbabilityBar
+            homeTeam={activeFixture.homeTeam}
+            awayTeam={activeFixture.awayTeam}
+            homeProb={homeProb}
+            drawProb={drawProb}
+            awayProb={awayProb}
+          />
+        </div>
+        {tagline && (
+          <p
+            className={`mt-3 text-center font-mono text-[11px] uppercase tracking-widest transition-colors duration-500 ${
+              tagline.mood === 'shock'
+                ? 'text-[#f5c518]'
+                : tagline.mood === 'reacting' || tagline.mood === 'building'
+                  ? 'text-amber-300/80'
+                  : 'text-gray-500'
+            }`}
+          >
+            {tagline.text}
+          </p>
+        )}
         {!hasOdds && (
           <p className="mt-4 text-center text-xs text-gray-500 leading-relaxed">
             {isCompletedPhase(activeFixture.phase)
@@ -107,7 +132,11 @@ export default function AmbientOverlay({
               <span className='font-mono text-[10px] font-bold uppercase tracking-widest text-gray-500'>TxLINE live market pulse</span>
               <span className={`flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest ${feedStatus === 'live' ? 'text-emerald-400' : feedStatus === 'stale' ? 'text-amber-400' : 'text-rose-300'}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${feedStatus === 'live' ? 'bg-emerald-400 animate-pulse' : feedStatus === 'stale' ? 'bg-amber-400' : 'bg-rose-300'}`} />
-                {feedStatus === 'live' ? `${updateCount.toLocaleString()} updates` : feedStatus === 'stale' ? `stale ${lastFeedAgeSeconds ?? 0}s` : feedStatus}
+                {feedStatus === 'live'
+                  ? `${updateCount.toLocaleString()} updates${lastFeedAgeSeconds !== null && lastFeedAgeSeconds >= 3 ? ` · ${lastFeedAgeSeconds}s ago` : ''}`
+                  : feedStatus === 'stale'
+                    ? `stale ${lastFeedAgeSeconds ?? 0}s`
+                    : feedStatus}
               </span>
             </div>
             <div className="space-y-1.5">
@@ -172,9 +201,16 @@ export default function AmbientOverlay({
               </div>
               <div className="text-xs text-gray-300 mt-1">Chances shift for {team}</div>
             </div>
+            {shockCause?.label && (
+              <div className="mb-4 flex items-center justify-center gap-2 font-mono text-[10px] font-bold uppercase tracking-widest text-gray-300">
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{shockCause.label}</span>
+                <span className="text-gray-600">→</span>
+                <span className="rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-3 py-1 text-[#f5c518]">⚡ Market shock</span>
+              </div>
+            )}
             <div className="text-xs font-semibold text-[#f5c518] uppercase tracking-wider mb-1">AI Commentator</div>
             <p className="text-sm italic text-gray-200 leading-relaxed font-display mb-5">
-              &ldquo;{activeShock.explanation || 'Calculating commentary insight...'}&rdquo;
+              &ldquo;{activeShock.explanation || shockCause?.narrative || 'Calculating commentary insight...'}&rdquo;
             </p>
             <FollowFade shock={activeShock} latestOdds={latestOdds} isDemo={isDemo} />
             <a

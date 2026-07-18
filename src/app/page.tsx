@@ -362,11 +362,12 @@ export default function HomePage() {
             <p className="hero-rise mt-6 text-xl md:text-2xl text-gray-200 font-display leading-snug" style={{ animationDelay: '0.28s' }}>
               Feel the World Cup.
               <br />
-              The odds. The drama. The codes.
+              Every goal. Every shock. Every shift in the market.
             </p>
             <p className="hero-rise mt-6 text-sm md:text-base text-gray-400 leading-relaxed max-w-lg" style={{ animationDelay: '0.4s' }}>
-              Your group chat already shares betting codes. LUMIÈRE puts live market intelligence behind them — so
-              everyone can see, instantly, whether a pick is smart or just lucky.
+              LUMIÈRE turns live TxLINE data into a second-screen fan experience. When the odds move sharply, read
+              the moment and Follow or Fade — five event-minutes later the market settles your call and builds your
+              Market IQ.
             </p>
             <div className="hero-rise mt-9 flex flex-col sm:flex-row items-center gap-4" style={{ animationDelay: '0.52s' }}>
               <Link

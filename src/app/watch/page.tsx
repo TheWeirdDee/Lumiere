@@ -388,11 +388,30 @@ function WatchContent() {
   const homeProb = currentOdds ? currentOdds.homeProb : 0.333
   const drawProb = currentOdds ? currentOdds.drawProb : 0.333
   const awayProb = currentOdds ? currentOdds.awayProb : 0.333
+  const inReplay = isDemo || isCompletedPhase(activeFixture.phase)
+  const inLive = isLivePhase(activeFixture.phase)
 
   return (
     <div className={`relative ${mode === 'following' ? 'h-screen w-screen bg-black overflow-hidden' : 'min-h-screen bg-[#080808] pb-16'}`}>
       {/* Universal Mode Toggle Bar */}
       <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-gray-950/80 backdrop-blur-md border border-white/15 px-3 py-1.5 rounded-full shadow-2xl">
+        <span
+          title={inReplay ? 'Recorded TxLINE data — practice only, Market IQ unaffected' : undefined}
+          className={`flex items-center gap-1.5 pl-1 pr-2.5 border-r border-white/10 font-mono text-[10px] font-bold uppercase tracking-wider ${
+            inReplay ? 'text-amber-400' : inLive ? 'text-emerald-400' : 'text-gray-500'
+          }`}
+        >
+          {inReplay ? (
+            '🔁 Replay'
+          ) : inLive ? (
+            <>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Live
+            </>
+          ) : (
+            'Soon'
+          )}
+        </span>
         <button
           onClick={() => handleModeChange('following')}
           className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
@@ -453,6 +472,7 @@ function WatchContent() {
           awayProb={awayProb}
           hasOdds={!!currentOdds}
           recentUpdates={updates.slice(-5)}
+          matchEvents={matchEvents}
           updateCount={updateCount}
           latestOdds={currentOdds ?? null}
           isDemo={isDemo}

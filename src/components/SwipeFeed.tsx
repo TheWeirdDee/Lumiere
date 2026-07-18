@@ -5,6 +5,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import type { Chain, Fixture, MatchEvent, MatchState, OddsEvent } from '@/lib/txline/types'
 import type { OddsShock } from '@/types'
+import { inferShockCause, type ShockCause } from '@/lib/shock-cause'
 import FollowFade from './FollowFade'
 import TeamFlag from './TeamFlag'
 
@@ -101,8 +102,76 @@ function MarketPulse({
 export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresState, latestOdds, updateCount, isDemo, feedStatus, lastFeedAgeSeconds }: SwipeFeedProps) {
   const [feedItems, setFeedItems] = useState<FeedItem[]>([])
   const [addedCodes, setAddedCodes] = useState<Record<string, boolean>>({})
+  const [activeIndex, setActiveIndex] = useState(0)
   const scrollRef = useRef<HTMLDivElement>(null)
   const prevCountRef = useRef(0)
+
+  const handleScroll = () => {
+    const el = scrollRef.current
+    if (!el || el.clientHeight === 0) return
+    setActiveIndex(Math.round(el.scrollTop / el.clientHeight))
+  }
+
+  const stepCard = (direction: 1 | -1) => {
+    const el = scrollRef.current
+    if (!el || el.clientHeight === 0) return
+    const current = Math.round(el.scrollTop / el.clientHeight)
+    const next = Math.min(Math.max(current + direction, 0), Math.max(0, feedItems.length - 1))
+    if (next !== current) el.scrollTo({ top: next * el.clientHeight, behavior: 'smooth' })
+  }
+
+  // Desktop input: mandatory scroll-snap swallows small mouse-wheel deltas (the
+  // page snaps back to the same card), so wheel and arrow keys drive the feed
+  // one card per gesture instead. Touch swiping is untouched.
+  const hasCards = feedItems.length > 0
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el || !hasCards) return
+
+    let lockUntil = 0
+    let accumulated = 0
+    let idleReset: ReturnType<typeof setTimeout> | undefined
+
+    const step = (direction: 1 | -1) => {
+      const h = el.clientHeight || 1
+      const current = Math.round(el.scrollTop / h)
+      const next = Math.min(Math.max(current + direction, 0), Math.max(0, el.children.length - 1))
+      if (next !== current) el.scrollTo({ top: next * h, behavior: 'smooth' })
+    }
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const now = Date.now()
+      if (now < lockUntil) return
+      accumulated += e.deltaY
+      clearTimeout(idleReset)
+      idleReset = setTimeout(() => { accumulated = 0 }, 200)
+      if (Math.abs(accumulated) < 50) return
+      step(accumulated > 0 ? 1 : -1)
+      accumulated = 0
+      lockUntil = now + 650
+    }
+
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null
+      if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return
+      if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+        e.preventDefault()
+        step(1)
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault()
+        step(-1)
+      }
+    }
+
+    el.addEventListener('wheel', onWheel, { passive: false })
+    window.addEventListener('keydown', onKey)
+    return () => {
+      el.removeEventListener('wheel', onWheel)
+      window.removeEventListener('keydown', onKey)
+      clearTimeout(idleReset)
+    }
+  }, [hasCards])
 
   useEffect(() => {
     const items: FeedItem[] = []
@@ -220,7 +289,7 @@ export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresSt
           </p>
           <p className="text-xs text-gray-400 leading-relaxed">
             {finished
-              ? 'This match already happened, so LUMIÈRE is replaying its real market data from the start. The first cards land within a minute or two — every goal and shock fires exactly where it did in real life.'
+              ? 'This match already happened. Every goal, odds move and shock you’re about to see comes from the original TxLINE feed — the first cards land within a minute or two. Practice only.'
               : upcoming
                 ? 'This feed fills up once the match kicks off. Every goal, red card and sudden odds move becomes a full-screen card here — you swipe through the drama like a story.'
                 : 'Cards appear only when something big happens: a goal, a red card, or the odds moving sharply. Quiet minutes in the match mean a quiet feed — the moment something breaks, it lands here first.'}
@@ -243,24 +312,68 @@ export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresSt
     )
   }
 
+  const clampedIndex = Math.min(Math.max(activeIndex, 0), feedItems.length - 1)
+  const hasMoreBelow = clampedIndex < feedItems.length - 1
+  const hasMoreAbove = clampedIndex > 0
+
   return (
-    <div ref={scrollRef} className="w-full h-full overflow-y-scroll snap-y snap-mandatory scrollbar-none scroll-smooth bg-black">
-      {feedItems.map((item) => (
-        <div
-          key={item.id}
-          className="w-full h-screen snap-start snap-always relative flex flex-col justify-center items-center p-6 text-center select-none overflow-hidden"
-        >
-          {item.type === 'goal' && <GoalCard event={item.data} activeFixture={activeFixture} scoresState={scoresState} />}
-          {item.type === 'red_card' && <RedCardCard event={item.data} />}
-          {item.type === 'shock' && (
-            <ShockCard shock={item.data} latestOdds={latestOdds} isDemo={isDemo} isAdded={!!addedCodes[item.id]} onAdd={() => handleAddCode(item.id)} />
-          )}
-          {item.type === 'corner_cluster' && <CornerClusterCard cluster={item.data} activeFixture={activeFixture} />}
-          {item.type === 'possession' && (
-            <PossessionCard possession={item.data} activeFixture={activeFixture} latestOdds={latestOdds} updateCount={updateCount} />
-          )}
+    <div className="relative w-full h-full">
+      <div ref={scrollRef} onScroll={handleScroll} className="w-full h-full overflow-y-scroll snap-y snap-mandatory scrollbar-none scroll-smooth bg-black">
+        {feedItems.map((item) => (
+          <div
+            key={item.id}
+            className="w-full h-screen snap-start snap-always relative flex flex-col justify-center items-center p-6 text-center select-none overflow-hidden"
+          >
+            {item.type === 'goal' && <GoalCard event={item.data} activeFixture={activeFixture} scoresState={scoresState} />}
+            {item.type === 'red_card' && <RedCardCard event={item.data} />}
+            {item.type === 'shock' && (
+              <ShockCard
+                shock={item.data}
+                cause={inferShockCause(item.data, matchEvents)}
+                latestOdds={latestOdds}
+                isDemo={isDemo}
+                isAdded={!!addedCodes[item.id]}
+                onAdd={() => handleAddCode(item.id)}
+              />
+            )}
+            {item.type === 'corner_cluster' && <CornerClusterCard cluster={item.data} activeFixture={activeFixture} />}
+            {item.type === 'possession' && (
+              <PossessionCard possession={item.data} activeFixture={activeFixture} latestOdds={latestOdds} updateCount={updateCount} />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Swipe affordances — the feed is manual scroll-snap, which is invisible
+          without a hint. Counter shows position; chevrons show direction. */}
+      {feedItems.length > 1 && (
+        <div className="absolute top-4 right-4 z-40 pointer-events-none rounded-full border border-white/10 bg-black/60 backdrop-blur-sm px-3 py-1 font-mono text-[10px] font-bold tracking-widest text-gray-300">
+          {clampedIndex + 1} / {feedItems.length}
         </div>
-      ))}
+      )}
+      {hasMoreAbove && (
+        <button
+          onClick={() => stepCard(-1)}
+          aria-label="Previous moment"
+          className="absolute top-16 left-1/2 -translate-x-1/2 z-40 text-gray-500 hover:text-white transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+          </svg>
+        </button>
+      )}
+      {hasMoreBelow && (
+        <button
+          onClick={() => stepCard(1)}
+          aria-label="Next moment"
+          className="absolute bottom-5 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-0.5 text-gray-300 hover:text-white transition-colors"
+        >
+          <svg className="w-6 h-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
+          <span className="font-mono text-[9px] font-bold uppercase tracking-widest">Swipe or scroll for next moment</span>
+        </button>
+      )}
     </div>
   )
 }
@@ -361,13 +474,14 @@ function RedCardCard({ event }: { event: MatchEvent }) {
    ========================================================================== */
 interface ShockCardProps {
   shock: OddsShock
+  cause: ShockCause
   latestOdds: OddsEvent | null
   isDemo: boolean
   isAdded: boolean
   onAdd: () => void
 }
 
-function ShockCard({ shock, latestOdds, isDemo, isAdded, onAdd }: ShockCardProps) {
+function ShockCard({ shock, cause, latestOdds, isDemo, isAdded, onAdd }: ShockCardProps) {
   const team = shock.affectedTeam === 'home' ? shock.homeTeam : shock.awayTeam
   const params = new URLSearchParams({ matchId: shock.matchId, team: shock.affectedTeam })
 
@@ -384,6 +498,15 @@ function ShockCard({ shock, latestOdds, isDemo, isAdded, onAdd }: ShockCardProps
 
         <h2 className="text-3xl font-black font-display uppercase tracking-wide text-white text-center">Odds Shift on {team}</h2>
 
+        {/* The story chain: what happened on the pitch → what the market did */}
+        {cause.label && (
+          <div className="mb-2 flex items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-widest text-gray-300">
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">{cause.label}</span>
+            <span className="text-gray-600">→</span>
+            <span className="rounded-full border border-[#f5c518]/25 bg-[#f5c518]/10 px-3 py-1 text-[#f5c518]">⚡ Market shock</span>
+          </div>
+        )}
+
         <div className="my-6 py-4 px-6 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center justify-center min-w-[200px]">
           <span className="text-5xl font-black font-mono tracking-tight text-[#f5c518]">
             {shock.direction === 'up' ? '+' : '-'}
@@ -394,7 +517,7 @@ function ShockCard({ shock, latestOdds, isDemo, isAdded, onAdd }: ShockCardProps
 
         <div className="mb-6 border-t border-white/5 pt-6 text-center w-full">
           <p className="text-base italic text-gray-200 leading-relaxed font-display">
-            &ldquo;{shock.explanation || 'Bookmakers reacted instantly to the event.'}&rdquo;
+            &ldquo;{shock.explanation || cause.narrative}&rdquo;
           </p>
         </div>
 

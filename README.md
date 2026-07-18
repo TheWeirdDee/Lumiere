@@ -1,10 +1,31 @@
 # LUMIERE
 
-LUMIERE turns TxLINE's live World Cup odds into a fan game: when the market moves sharply, fans choose **Follow** or **Fade**. Five TxLINE event-minutes later, the market resolves the call and a verified result updates Market IQ.
+**Feel the World Cup through the market.**
+
+LUMIERE is a live football companion powered by TxLINE. It turns goals, red cards and sharp odds movement into a second-screen fan experience: when the market moves sharply, LUMIERE explains what changed in plain football language and opens a short **Follow or Fade** challenge. Five TxLINE event-minutes later, the market resolves the call and a verified result updates the fan's Market IQ.
 
 It also supports TxLINE-verified Match Winner code edges, public code tracking, and Telegram group delivery.
 
 Built for the TxODDS World Cup Hackathon, Consumer & Fan Experiences track, July 2026.
+
+## Two match modes
+
+- **Following Mode** — for fans away from the television. The match becomes a full-screen vertical feed of goals, red cards, odds shocks and momentum moments. Swipe card to card (a position counter and swipe hint keep the feed discoverable); new moments scroll into view on arrival.
+- **Watching Mode** — a quiet second screen. Score, match clock and live Match Winner chances stay visible, with a one-line market reading underneath ("The market is calm", "Momentum is building", "Odds shock — the market is reacting to the goal"). Shocks slide up as bottom sheets and briefly light up the chances bar.
+
+A persistent header badge shows the session state: 🟢 Live or 🔁 Replay (recorded data, practice only).
+
+## The market story
+
+Every shock tells its story. When an odds shock fires shortly after a goal, red card or penalty, LUMIERE connects the two on the card:
+
+```text
+⚽ Goal 67'  →  ⚡ Market shock
+"The market is reacting to Argentina's goal in the 67' —
+bookmakers now believe they've taken control."
+```
+
+The attribution is inferred presentation-side from the same TxLINE event timestamps used everywhere else — detection, scoring and settlement are untouched by it. When no match event explains the move, LUMIERE says so instead of inventing one.
 
 ## Core fan loop
 
@@ -22,8 +43,10 @@ The live interface shows the TxLINE update count, event timestamps and connectio
 
 ## Implemented product
 
-- **Follow/Fade:** one call per user per live shock. Correct `+10 IQ`, wrong `-5 IQ`, close result is a push.
+- **Follow/Fade:** one call per user per live shock. Correct `+10 IQ`, wrong `-5 IQ`, close result is a push. Results land as an animated verdict with the plain-English outcome and the fan's current win streak.
 - **Auditable Market IQ:** every score change has a unique source event; reconnects and concurrent relays cannot award points twice.
+- **Market IQ profile:** accuracy, current and best streak, correct/wrong/push counts, recent call history and leaderboard position — all derived from the same verified call records, presentation-only.
+- **Market Personality:** a descriptive label (Contrarian, Momentum Rider, Market Whisperer, Market Reader) computed from at least 10 decided verified calls; below that threshold the profile honestly shows "Market Observer". Never affects scoring.
 - **Odds shocks:** a home or away win probability moving at least 15 percentage points inside 90 feed-seconds.
 - **Verified edge builder:** supports TxLINE Match Winner only (`home`, `draw`, `away`). Unsupported market schemas are hidden instead of estimated.
 - **Automatic code settlement:** final TxLINE score states settle selections server-side. There is no public settlement endpoint.
