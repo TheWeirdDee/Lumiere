@@ -22,6 +22,13 @@ export default function GoalAnimation({
   const mountRef = useRef<HTMLDivElement>(null)
   const [showScoreFlip, setShowScoreFlip] = useState(false)
 
+  // Callers pass inline arrows, and the parent re-renders on every odds tick.
+  // Keeping onComplete in a ref stops those renders from re-running the effect
+  // below — which would tear down and restart the whole animation (and its
+  // 2500ms completion timer) forever on a live match.
+  const onCompleteRef = useRef(onComplete)
+  onCompleteRef.current = onComplete
+
   useEffect(() => {
     let renderer: THREE.WebGLRenderer | null = null
     let scene: THREE.Scene | null = null
@@ -207,14 +214,14 @@ export default function GoalAnimation({
     // never shares a frame with a live Three.js canvas.
     const finishTimer = setTimeout(() => {
       cleanup()
-      onComplete()
+      onCompleteRef.current()
     }, 2500)
 
     return () => {
       clearTimeout(finishTimer)
       cleanup()
     }
-  }, [teamColor, onComplete])
+  }, [teamColor])
 
   return (
     <div className="fixed inset-0 z-[9999] overflow-hidden pointer-events-none select-none bg-black/60 flex items-center justify-center">

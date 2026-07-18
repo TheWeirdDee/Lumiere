@@ -357,6 +357,32 @@ function WatchContent() {
       setStreamError('The TxLINE feed connection is reconnecting.')
     }
 
+    // Live safety net: SSE relays only forward events from the moment this
+    // client connected, so a viewer who opens (or reconnects) after a goal
+    // sees a stale score until the next event. Reconcile against the fixtures
+    // snapshot periodically. Replay state comes only from the recorded stream.
+    let reconcileTimer: ReturnType<typeof setInterval> | null = null
+    if (!replayMode && !isDemo) {
+      const reconcileScore = () => {
+        fetch('/api/fixtures', { cache: 'no-store' })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => {
+            const fresh = (d?.fixtures as Fixture[] | undefined)?.find((f) => f.matchId === selectedMatchId)
+            if (!fresh) return
+            setActiveFixture((prev) => {
+              if (!prev) return prev
+              if (prev.homeScore === fresh.homeScore && prev.awayScore === fresh.awayScore && prev.phase === fresh.phase) {
+                return prev
+              }
+              return { ...prev, homeScore: fresh.homeScore, awayScore: fresh.awayScore, phase: fresh.phase }
+            })
+          })
+          .catch(() => undefined)
+      }
+      reconcileScore()
+      reconcileTimer = setInterval(reconcileScore, 45_000)
+    }
+
     if (replayMode) {
       const replaySpeed = isDemo ? DEMO_REPLAY_SPEED : STANDARD_REPLAY_SPEED
       const resumeParam = resumeAt !== undefined ? `&startAt=${resumeAt}` : ''
@@ -446,6 +472,7 @@ function WatchContent() {
     return () => {
       // Flush the throttled checkpoint so navigation resumes at the exact spot.
       writeCheckpoint(ckptAt, true)
+      if (reconcileTimer) clearInterval(reconcileTimer)
       scoresSource?.close()
       oddsSource?.close()
     }
@@ -493,11 +520,12 @@ function WatchContent() {
 
   return (
     <div className={`relative ${mode === 'following' ? 'h-screen w-screen bg-black overflow-hidden' : 'min-h-screen bg-[#080808] pb-16'}`}>
-      {/* Universal Mode Toggle Bar */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-gray-950/80 backdrop-blur-md border border-white/15 px-3 py-1.5 rounded-full shadow-2xl">
+      {/* Universal Mode Toggle Bar — capped to the viewport; overflow scrolls
+          horizontally inside the pill instead of clipping off-screen on phones. */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 sm:gap-2 max-w-[calc(100vw-16px)] overflow-x-auto scrollbar-none whitespace-nowrap bg-gray-950/80 backdrop-blur-md border border-white/15 px-2 sm:px-3 py-1.5 rounded-full shadow-2xl">
         <span
           title={inReplay ? 'Recorded TxLINE data — practice only, Market IQ unaffected' : undefined}
-          className={`flex items-center gap-1.5 pl-1 pr-2.5 border-r border-white/10 font-mono text-[10px] font-bold uppercase tracking-wider ${
+          className={`shrink-0 flex items-center gap-1.5 pl-1 pr-2 sm:pr-2.5 border-r border-white/10 font-mono text-[10px] font-bold uppercase tracking-wider ${
             inReplay ? 'text-amber-400' : inLive ? 'text-emerald-400' : 'text-gray-500'
           }`}
         >
@@ -514,7 +542,7 @@ function WatchContent() {
         </span>
         <button
           onClick={() => handleModeChange('following')}
-          className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+          className={`shrink-0 px-2.5 sm:px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
             mode === 'following' ? 'bg-[#f5c518] text-black shadow-md' : 'text-gray-400 hover:text-white'
           }`}
         >
@@ -522,7 +550,7 @@ function WatchContent() {
         </button>
         <button
           onClick={() => handleModeChange('watching')}
-          className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+          className={`shrink-0 px-2.5 sm:px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
             mode === 'watching' ? 'bg-[#f5c518] text-black shadow-md' : 'text-gray-400 hover:text-white'
           }`}
         >
@@ -533,13 +561,13 @@ function WatchContent() {
         )}
         <Link
           href={user ? '/profile' : '/auth'}
-          className="pl-3 py-1.5 border-l border-white/10 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-[#f5c518] transition-colors"
+          className="shrink-0 pl-2 sm:pl-3 py-1.5 border-l border-white/10 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-[#f5c518] transition-colors"
         >
           {user ? 'Profile' : 'Sign in'}
         </Link>
         <Link
           href="/guide"
-          className="px-1 py-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-[#f5c518] transition-colors"
+          className="shrink-0 px-1 py-1.5 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-[#f5c518] transition-colors"
         >
           Guide
         </Link>

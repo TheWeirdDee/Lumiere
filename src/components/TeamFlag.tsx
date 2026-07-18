@@ -1,6 +1,10 @@
 // Circular SVG country flags (hatscripts/circle-flags, MIT) — World Cup teams
 // are national sides, so flags are the "club crests" of this product.
-import React from 'react'
+// Served from /public/flags: some mobile webviews (notably Telegram's in-app
+// browser) block third-party CDN requests, which left every flag blank.
+'use client'
+
+import React, { useState } from 'react'
 
 const TEAM_CODES: Record<string, string> = {
   Algeria: 'dz',
@@ -67,9 +71,11 @@ interface TeamFlagProps {
 
 export default function TeamFlag({ team, size = 28, className = '' }: TeamFlagProps) {
   const code = TEAM_CODES[team]
+  // 0 = local /public/flags, 1 = CDN fallback, 2 = initials
+  const [sourceIndex, setSourceIndex] = useState(0)
 
-  if (!code) {
-    // Unknown side (e.g. "Winner SF1"): initials in a dark circle.
+  if (!code || sourceIndex >= 2) {
+    // Unknown side (e.g. "Winner SF1") or no image source worked: initials.
     const initials = team
       .split(/\s+/)
       .map((w) => w[0])
@@ -87,14 +93,17 @@ export default function TeamFlag({ team, size = 28, className = '' }: TeamFlagPr
     )
   }
 
+  const src = sourceIndex === 0 ? `/flags/${code}.svg` : `https://hatscripts.github.io/circle-flags/flags/${code}.svg`
+
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={`https://hatscripts.github.io/circle-flags/flags/${code}.svg`}
+      src={src}
       alt={`${team} flag`}
       width={size}
       height={size}
       loading="lazy"
+      onError={() => setSourceIndex((index) => index + 1)}
       className={`rounded-full shrink-0 ring-1 ring-white/15 ${className}`}
     />
   )
