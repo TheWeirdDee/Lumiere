@@ -111,8 +111,12 @@ export default function CodeBuilder({ prefillMatchId, prefillTeam }: CodeBuilder
       }
       setSelections((prev) => [...prev, newSelection])
       setOddsInput('')
-    } catch {
-      setAddError('Could not reach the edge service — try again')
+    } catch (err) {
+      // Preserve the specific reason (e.g. "No live odds for this match
+      // yet.") instead of masking it behind a generic network-error message
+      // — a closed market and a dead connection are different problems and
+      // look identical to the user if this always says the same thing.
+      setAddError(err instanceof Error ? err.message : 'Could not reach the edge service — try again')
     } finally {
       setAddBusy(false)
     }

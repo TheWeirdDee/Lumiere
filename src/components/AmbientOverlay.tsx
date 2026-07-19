@@ -31,6 +31,9 @@ interface AmbientOverlayProps {
   isSignedIn: boolean
   /** Where to return after signing in from inside this overlay (preserves demo/match context). */
   authReturnPath: string
+  /** False for demo/replay matches — their TxLINE market is closed, so prefilling
+   *  them into the code builder is a guaranteed "no live odds" dead end. */
+  canBuildCode: boolean
   feedStatus: 'connecting' | 'live' | 'reconnecting' | 'stale' | 'complete'
   lastFeedAgeSeconds: number | null
   activeShock: OddsShock | null
@@ -55,6 +58,7 @@ export default function AmbientOverlay({
   isDemo,
   isSignedIn,
   authReturnPath,
+  canBuildCode,
   feedStatus,
   lastFeedAgeSeconds,
   activeShock,
@@ -220,11 +224,26 @@ export default function AmbientOverlay({
             </p>
             <FollowFade shock={activeShock} latestOdds={latestOdds} isDemo={isDemo} />
             <a
-              href={isSignedIn ? `/build?${buildParams?.toString()}` : `/auth?next=${encodeURIComponent(authReturnPath)}`}
+              href={
+                !isSignedIn
+                  ? `/auth?next=${encodeURIComponent(authReturnPath)}`
+                  : canBuildCode
+                    ? `/build?${buildParams?.toString()}`
+                    : '/build'
+              }
               className='mt-3 block w-full py-3 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-white font-display font-bold uppercase tracking-wider text-xs text-center transition-colors'
             >
-              {isSignedIn ? 'Add to a verified code →' : 'Sign in to build a code →'}
+              {!isSignedIn
+                ? 'Sign in to build a code →'
+                : canBuildCode
+                  ? 'Add to a verified code →'
+                  : 'Build a real code →'}
             </a>
+            {isSignedIn && !canBuildCode && (
+              <p className="mt-2 text-center text-[10px] text-gray-500">
+                This match already ended — its market is closed, so it can&apos;t be added. Pick a live match in the builder instead.
+              </p>
+            )}
           </div>
         )}
       </div>

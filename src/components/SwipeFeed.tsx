@@ -43,6 +43,9 @@ interface SwipeFeedProps {
   isSignedIn: boolean
   /** Where to return after signing in from inside this feed (preserves demo/match context). */
   authReturnPath: string
+  /** False for demo/replay matches — their TxLINE market is closed, so prefilling
+   *  them into the code builder is a guaranteed "no live odds" dead end. */
+  canBuildCode: boolean
   feedStatus: 'connecting' | 'live' | 'reconnecting' | 'stale' | 'complete'
   lastFeedAgeSeconds: number | null
 }
@@ -103,7 +106,7 @@ function MarketPulse({
   )
 }
 
-export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresState, latestOdds, updateCount, isDemo, isSignedIn, authReturnPath, feedStatus, lastFeedAgeSeconds }: SwipeFeedProps) {
+export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresState, latestOdds, updateCount, isDemo, isSignedIn, authReturnPath, canBuildCode, feedStatus, lastFeedAgeSeconds }: SwipeFeedProps) {
   const [feedItems, setFeedItems] = useState<FeedItem[]>([])
   const [addedCodes, setAddedCodes] = useState<Record<string, boolean>>({})
   const [activeIndex, setActiveIndex] = useState(0)
@@ -341,6 +344,7 @@ export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresSt
                   isDemo={isDemo}
                   isSignedIn={isSignedIn}
                   authReturnPath={authReturnPath}
+                  canBuildCode={canBuildCode}
                   isAdded={!!addedCodes[item.id]}
                   onAdd={() => handleAddCode(item.id)}
                 />
@@ -489,11 +493,12 @@ interface ShockCardProps {
   isDemo: boolean
   isSignedIn: boolean
   authReturnPath: string
+  canBuildCode: boolean
   isAdded: boolean
   onAdd: () => void
 }
 
-function ShockCard({ shock, cause, latestOdds, isDemo, isSignedIn, authReturnPath, isAdded, onAdd }: ShockCardProps) {
+function ShockCard({ shock, cause, latestOdds, isDemo, isSignedIn, authReturnPath, canBuildCode, isAdded, onAdd }: ShockCardProps) {
   const team = shock.affectedTeam === 'home' ? shock.homeTeam : shock.awayTeam
   const params = new URLSearchParams({ matchId: shock.matchId, team: shock.affectedTeam })
 
@@ -547,14 +552,31 @@ function ShockCard({ shock, cause, latestOdds, isDemo, isSignedIn, authReturnPat
         </div>
 
         <a
-          href={isSignedIn ? `/build?${params.toString()}` : `/auth?next=${encodeURIComponent(authReturnPath)}`}
+          href={
+            !isSignedIn
+              ? `/auth?next=${encodeURIComponent(authReturnPath)}`
+              : canBuildCode
+                ? `/build?${params.toString()}`
+                : '/build'
+          }
           onClick={onAdd}
           className={`w-full py-3.5 px-6 rounded-full border border-white/10 font-display font-bold uppercase tracking-wider text-xs transition-all duration-200 text-center ${
             isAdded ? 'bg-emerald-500 text-black shadow-md' : 'bg-white/5 hover:bg-white/10 text-white active:scale-98'
           }`}
         >
-          {isAdded ? '✓ Opening code builder…' : isSignedIn ? 'Add to a verified code →' : 'Sign in to build a code →'}
+          {isAdded
+            ? '✓ Opening code builder…'
+            : !isSignedIn
+              ? 'Sign in to build a code →'
+              : canBuildCode
+                ? 'Add to a verified code →'
+                : 'Build a real code →'}
         </a>
+        {isSignedIn && !canBuildCode && (
+          <p className="mt-2 text-[10px] text-gray-500">
+            This match already ended — its market is closed, so it can&apos;t be added. Pick a live match in the builder instead.
+          </p>
+        )}
       </div>
     </div>
   )

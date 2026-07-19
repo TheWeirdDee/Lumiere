@@ -699,6 +699,7 @@ function WatchContent() {
           isDemo={isDemo}
           isSignedIn={!!user}
           authReturnPath={authReturnPath}
+          canBuildCode={!inReplay}
           feedStatus={feedStatus}
           lastFeedAgeSeconds={lastFeedReceivedAt ? Math.max(0, Math.floor((Date.now() - lastFeedReceivedAt) / 1000)) : null}
         />
@@ -717,6 +718,7 @@ function WatchContent() {
           isDemo={isDemo}
           isSignedIn={!!user}
           authReturnPath={authReturnPath}
+          canBuildCode={!inReplay}
           feedStatus={feedStatus}
           lastFeedAgeSeconds={lastFeedReceivedAt ? Math.max(0, Math.floor((Date.now() - lastFeedReceivedAt) / 1000)) : null}
           activeShock={activeShock}
