@@ -78,6 +78,23 @@ function WatchContent() {
   const [lastFeedReceivedAt, setLastFeedReceivedAt] = useState<number | null>(null)
   const [, setHealthClock] = useState(0)
 
+  // Replay/demo transport controls — pause freezes the display by closing the
+  // connection without touching accumulated state; resume and seek both
+  // reopen it via the same startAt resume mechanism already used for
+  // cross-page checkpoint resume. Live matches never show these controls.
+  const [isPaused, setIsPaused] = useState(false)
+  const [virtualNow, setVirtualNow] = useState<number | null>(null)
+  const seekTargetRef = useRef<number | null>(null)
+  const [seekNonce, setSeekNonce] = useState(0)
+  const [sliderMinute, setSliderMinute] = useState<number | null>(null)
+
+  const requestSeek = (targetTs: number) => {
+    seekTargetRef.current = targetTs
+    setIsPaused(false)
+    setSliderMinute(null)
+    setSeekNonce((n) => n + 1)
+  }
+
   useEffect(() => {
     const timer = setInterval(() => {
       setHealthClock((value) => value + 1)
@@ -152,6 +169,11 @@ function WatchContent() {
   // 2. SSE Stream Listener Effect
   useEffect(() => {
     if (!selectedMatchId || !activeFixture) return
+    // Pause: skip the whole connect cycle. The cleanup below (from the
+    // previous, still-playing render) already closed the connection and
+    // flushed a checkpoint, so nothing here needs to reset or reconnect —
+    // whatever is already on screen simply stays exactly as it is.
+    if (isPaused) return
 
     setUpdates([])
     setUpdateCount(0)
@@ -192,8 +214,19 @@ function WatchContent() {
     // in a match) doesn't require waiting through the whole match in real time.
     // Works for any replay (?demo=true or an auto-replayed completed match).
     const requestedStartAt = Number(new URLSearchParams(window.location.search).get('startAt'))
-    if (replayMode && Number.isFinite(requestedStartAt) && requestedStartAt > 0) {
+    if (replayMode && seekTargetRef.current !== null) {
+      // Highest priority: an explicit seek from the scrubber. Consumed once.
+      resumeAt = seekTargetRef.current
+      setVirtualNow(resumeAt)
+      seekTargetRef.current = null
+      try {
+        sessionStorage.removeItem(checkpointKey)
+      } catch {
+        // Ignore storage errors.
+      }
+    } else if (replayMode && Number.isFinite(requestedStartAt) && requestedStartAt > 0) {
       resumeAt = requestedStartAt
+      setVirtualNow(resumeAt)
       try {
         sessionStorage.removeItem(checkpointKey)
       } catch {
@@ -214,6 +247,7 @@ function WatchContent() {
           if (typeof saved.at === 'number' && saved.at > 0) {
             resumeAt = saved.at + 1
             ckptAt = saved.at
+            setVirtualNow(ckptAt)
             ckptEvents = saved.matchEvents ?? []
             ckptShocks = saved.shocks ?? []
             ckptScores = saved.scoresState ?? null
@@ -240,6 +274,7 @@ function WatchContent() {
     const writeCheckpoint = (at: number, force = false) => {
       if (!replayMode || at <= 0) return
       ckptAt = Math.max(ckptAt, at)
+      setVirtualNow(ckptAt) // drives the scrubber's live position, independent of the throttled write below
       const now = Date.now()
       if (!force && now - lastCkptWrite < 3_000) return
       lastCkptWrite = now
@@ -490,9 +525,11 @@ function WatchContent() {
       scoresSource?.close()
       oddsSource?.close()
     }
-  }, [selectedMatchId, activeFixture !== null, isDemo])
+  }, [selectedMatchId, activeFixture !== null, isDemo, isPaused, seekNonce])
 
   const handleSelectMatch = (fixture: Fixture) => {
+    setIsPaused(false)
+    setSliderMinute(null)
     setActiveFixture(fixture)
     setSelectedMatchId(fixture.matchId)
     localStorage.setItem(LAST_MATCH_STORAGE_KEY, fixture.matchId)
@@ -535,6 +572,18 @@ function WatchContent() {
   // /auth always bounces back to a bare /watch, which re-picks a fixture from
   // scratch and loses the exact match/mode the visitor was on.
   const authReturnPath = isDemo ? '/watch?demo=true' : selectedMatchId ? `/watch?match=${selectedMatchId}` : '/watch'
+
+  // Scrubber: slider position 0 = kickoff minus the engine's 5-minute
+  // pre-match baseline, matching how a fresh replay starts; max covers a
+  // full match plus extra time. Dragging computes an absolute timestamp and
+  // hands it to requestSeek, which reopens the stream at that exact point.
+  const scrubberBaseTs = activeFixture.kickoff - 5 * 60_000
+  const scrubberMaxMinute = 125
+  const currentVirtualMinute = Math.min(
+    scrubberMaxMinute,
+    Math.max(0, Math.round(((virtualNow ?? scrubberBaseTs) - scrubberBaseTs) / 60_000))
+  )
+  const displaySliderMinute = sliderMinute ?? currentVirtualMinute
 
   return (
     <div className={`relative ${mode === 'following' ? 'h-screen w-screen bg-black overflow-hidden' : 'min-h-screen bg-[#080808] pb-16'}`}>
@@ -590,6 +639,48 @@ function WatchContent() {
           Guide
         </Link>
       </div>
+
+      {/* Replay transport controls — play/pause + scrub. Never shown for a
+          genuinely live match; only demo mode or an auto-replayed completed
+          fixture. Positioned above SwipeFeed's own bottom swipe-hint so the
+          two never overlap. */}
+      {inReplay && (
+        <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 w-[calc(100vw-16px)] max-w-md bg-gray-950/85 backdrop-blur-md border border-white/15 px-4 py-2.5 rounded-full shadow-2xl">
+          <button
+            onClick={() => setIsPaused((p) => !p)}
+            aria-label={isPaused ? 'Play replay' : 'Pause replay'}
+            className="shrink-0 w-8 h-8 rounded-full bg-[#f5c518] text-black flex items-center justify-center hover:bg-[#e2b514] transition-colors active:scale-95"
+          >
+            {isPaused ? (
+              <svg className="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            ) : (
+              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
+              </svg>
+            )}
+          </button>
+          <input
+            type="range"
+            min={0}
+            max={scrubberMaxMinute}
+            value={displaySliderMinute}
+            onChange={(e) => setSliderMinute(Number(e.currentTarget.value))}
+            onMouseUp={() => {
+              if (sliderMinute !== null) requestSeek(scrubberBaseTs + sliderMinute * 60_000)
+            }}
+            onTouchEnd={() => {
+              if (sliderMinute !== null) requestSeek(scrubberBaseTs + sliderMinute * 60_000)
+            }}
+            aria-label="Seek to match minute"
+            className="flex-1 h-1.5 rounded-lg bg-gray-800 accent-[#f5c518] cursor-pointer outline-none"
+          />
+          <span className="shrink-0 font-mono text-[11px] font-bold text-gray-300 w-9 text-right" suppressHydrationWarning>
+            {displaySliderMinute < 5 ? 'KO' : `${displaySliderMinute - 5}'`}
+          </span>
+        </div>
+      )}
 
       {streamError && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-40 max-w-md rounded-full border border-rose-500/30 bg-rose-950/90 px-4 py-2 text-center text-[11px] text-rose-200 shadow-xl">
