@@ -75,6 +75,49 @@ export default function DocsPage() {
           </p>
         </section>
 
+        <section>
+          <div className="mb-6 text-center">
+            <div className="font-mono text-[11px] font-bold uppercase tracking-[0.25em] mb-2" style={{ color: GOLD }}>
+              Quick overview
+            </div>
+            <h2 className="font-display text-2xl md:text-3xl font-bold text-white">Core idea, business, and technical highlights</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <Card>
+              <h3 className="font-display text-sm font-bold uppercase tracking-widest mb-3" style={{ color: GOLD }}>Core idea</h3>
+              <p className="text-sm text-gray-300 leading-relaxed">
+                LUMIÈRE is a live football companion, not a betting tool. It watches TxLINE&apos;s live World Cup
+                market alongside the match and, when the market moves sharply, explains why in plain English and
+                opens a 30-second <strong className="text-white">Follow or Fade</strong> call. Five TxLINE
+                event-minutes later the market itself resolves the call and updates the fan&apos;s verified{' '}
+                <strong className="text-white">Market IQ</strong>. Two viewing modes (a TikTok-style swipe feed and a
+                quiet second-screen overlay) and a no-account replay of real recorded matches sit on top of the same
+                pipeline.
+              </p>
+            </Card>
+            <Card>
+              <h3 className="font-display text-sm font-bold uppercase tracking-widest mb-3" style={{ color: GOLD }}>Business highlights</h3>
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li>• <strong className="text-white">Sponsored market moments</strong> — a sponsor name/link on high-attention shock cards, config-only, hidden when unset</li>
+                <li>• <strong className="text-white">Affiliate attribution</strong> on public code pages — every outbound redirect recorded, gated behind explicit approval</li>
+                <li>• <strong className="text-white">B2B market-intelligence export</strong> — anonymized shocks/calls/outcomes via a bearer-secured endpoint</li>
+                <li>• <strong className="text-white">Premium creator subscriptions</strong> — roadmap; not claimed as live today</li>
+                <li>• Free core fan experience works with zero commercial partner — monetization sits on top, never blocks the product</li>
+              </ul>
+            </Card>
+            <Card>
+              <h3 className="font-display text-sm font-bold uppercase tracking-widest mb-3" style={{ color: GOLD }}>Technical highlights</h3>
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li>• One pipeline for live <em>and</em> replay — same normalizers, shock detector, resolution logic</li>
+                <li>• Shock = ≥15pp Match Winner probability move inside a rolling 90-second window</li>
+                <li>• Every Market IQ change ties to a unique source event — DB constraints make it idempotent</li>
+                <li>• Client-supplied edge, settlement, and entry-probability values are never trusted — the server recomputes from TxLINE</li>
+                <li>• Unsupported markets are hidden, never estimated</li>
+              </ul>
+            </Card>
+          </div>
+        </section>
+
         <Section label="01 · Core loop" title="One pipeline, live and replay">
           <Card>
             <pre className="whitespace-pre-wrap font-mono text-xs md:text-[13px] text-gray-300 leading-relaxed">
