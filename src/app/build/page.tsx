@@ -22,13 +22,16 @@ function BuildContent() {
 
   return (
     <div className="min-h-screen bg-[#080808] px-6 py-12">
-      <div className="max-w-2xl mx-auto mb-8 flex items-center justify-between">
+      <div className="max-w-2xl mx-auto mb-2 flex items-center justify-between">
         <Link href="/watch" className="text-xs font-bold uppercase tracking-wider text-gray-400 hover:text-white transition-colors">
           ← Back
         </Link>
         <h1 className="text-lg font-black font-display uppercase tracking-wider text-white">Build a code</h1>
         <span className="w-10" />
       </div>
+      <p className="max-w-2xl mx-auto mb-6 text-center text-[11px] text-gray-500 leading-relaxed">
+        Verifies the odds your platform is already offering — LUMIÈRE never places bets or holds money.
+      </p>
       <CodeBuilder prefillMatchId={matchId} prefillTeam={team === 'home' || team === 'away' ? team : undefined} />
     </div>
   )
