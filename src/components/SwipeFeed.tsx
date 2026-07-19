@@ -39,6 +39,10 @@ interface SwipeFeedProps {
   /** Total odds ticks received this session — visible proof the feed is alive. */
   updateCount: number
   isDemo: boolean
+  /** Real auth state — independent of isDemo, which only gates practice scoring. */
+  isSignedIn: boolean
+  /** Where to return after signing in from inside this feed (preserves demo/match context). */
+  authReturnPath: string
   feedStatus: 'connecting' | 'live' | 'reconnecting' | 'stale' | 'complete'
   lastFeedAgeSeconds: number | null
 }
@@ -99,7 +103,7 @@ function MarketPulse({
   )
 }
 
-export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresState, latestOdds, updateCount, isDemo, feedStatus, lastFeedAgeSeconds }: SwipeFeedProps) {
+export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresState, latestOdds, updateCount, isDemo, isSignedIn, authReturnPath, feedStatus, lastFeedAgeSeconds }: SwipeFeedProps) {
   const [feedItems, setFeedItems] = useState<FeedItem[]>([])
   const [addedCodes, setAddedCodes] = useState<Record<string, boolean>>({})
   const [activeIndex, setActiveIndex] = useState(0)
@@ -320,26 +324,32 @@ export default function SwipeFeed({ shocks, matchEvents, activeFixture, scoresSt
     <div className="relative w-full h-full">
       <div ref={scrollRef} onScroll={handleScroll} className="w-full h-full overflow-y-scroll snap-y snap-mandatory scrollbar-none scroll-smooth bg-black">
         {feedItems.map((item) => (
-          <div
-            key={item.id}
-            className="w-full h-screen snap-start snap-always relative flex flex-col justify-center items-center p-6 text-center select-none overflow-hidden"
-          >
-            {item.type === 'goal' && <GoalCard event={item.data} activeFixture={activeFixture} scoresState={scoresState} />}
-            {item.type === 'red_card' && <RedCardCard event={item.data} />}
-            {item.type === 'shock' && (
-              <ShockCard
-                shock={item.data}
-                cause={inferShockCause(item.data, matchEvents)}
-                latestOdds={latestOdds}
-                isDemo={isDemo}
-                isAdded={!!addedCodes[item.id]}
-                onAdd={() => handleAddCode(item.id)}
-              />
-            )}
-            {item.type === 'corner_cluster' && <CornerClusterCard cluster={item.data} activeFixture={activeFixture} />}
-            {item.type === 'possession' && (
-              <PossessionCard possession={item.data} activeFixture={activeFixture} latestOdds={latestOdds} updateCount={updateCount} />
-            )}
+          // Outer cell owns the scroll-snap slot; overflow-y-auto (not hidden)
+          // means a card taller than the viewport scrolls instead of clipping
+          // or overlapping the persistent counter/swipe-hint badges. The inner
+          // min-h-full flex centers short cards and naturally top-aligns tall
+          // ones once their content exceeds the viewport.
+          <div key={item.id} className="w-full h-screen snap-start snap-always overflow-y-auto scrollbar-none">
+            <div className="min-h-full relative flex flex-col justify-center items-center px-6 pt-16 pb-24 text-center select-none">
+              {item.type === 'goal' && <GoalCard event={item.data} activeFixture={activeFixture} scoresState={scoresState} />}
+              {item.type === 'red_card' && <RedCardCard event={item.data} />}
+              {item.type === 'shock' && (
+                <ShockCard
+                  shock={item.data}
+                  cause={inferShockCause(item.data, matchEvents)}
+                  latestOdds={latestOdds}
+                  isDemo={isDemo}
+                  isSignedIn={isSignedIn}
+                  authReturnPath={authReturnPath}
+                  isAdded={!!addedCodes[item.id]}
+                  onAdd={() => handleAddCode(item.id)}
+                />
+              )}
+              {item.type === 'corner_cluster' && <CornerClusterCard cluster={item.data} activeFixture={activeFixture} />}
+              {item.type === 'possession' && (
+                <PossessionCard possession={item.data} activeFixture={activeFixture} latestOdds={latestOdds} updateCount={updateCount} />
+              )}
+            </div>
           </div>
         ))}
       </div>
@@ -477,11 +487,13 @@ interface ShockCardProps {
   cause: ShockCause
   latestOdds: OddsEvent | null
   isDemo: boolean
+  isSignedIn: boolean
+  authReturnPath: string
   isAdded: boolean
   onAdd: () => void
 }
 
-function ShockCard({ shock, cause, latestOdds, isDemo, isAdded, onAdd }: ShockCardProps) {
+function ShockCard({ shock, cause, latestOdds, isDemo, isSignedIn, authReturnPath, isAdded, onAdd }: ShockCardProps) {
   const team = shock.affectedTeam === 'home' ? shock.homeTeam : shock.awayTeam
   const params = new URLSearchParams({ matchId: shock.matchId, team: shock.affectedTeam })
 
@@ -535,13 +547,13 @@ function ShockCard({ shock, cause, latestOdds, isDemo, isAdded, onAdd }: ShockCa
         </div>
 
         <a
-          href={isDemo ? '/auth' : `/build?${params.toString()}`}
+          href={isSignedIn ? `/build?${params.toString()}` : `/auth?next=${encodeURIComponent(authReturnPath)}`}
           onClick={onAdd}
           className={`w-full py-3.5 px-6 rounded-full border border-white/10 font-display font-bold uppercase tracking-wider text-xs transition-all duration-200 text-center ${
             isAdded ? 'bg-emerald-500 text-black shadow-md' : 'bg-white/5 hover:bg-white/10 text-white active:scale-98'
           }`}
         >
-          {isAdded ? '✓ Opening code builder…' : isDemo ? 'Sign in to build a code →' : 'Add to a verified code →'}
+          {isAdded ? '✓ Opening code builder…' : isSignedIn ? 'Add to a verified code →' : 'Sign in to build a code →'}
         </a>
       </div>
     </div>

@@ -185,7 +185,21 @@ function WatchContent() {
     let lastCkptWrite = 0
 
     let resumeAt: number | undefined
-    if (replayMode) {
+    // Demo/recording convenience: an explicit ?startAt=<unixMs> in the URL
+    // jumps a fresh replay straight to that point instead of kickoff. This is
+    // the same startAt the engine already accepts for cross-page resume —
+    // just exposed directly, so a specific moment (e.g. a marquee shock late
+    // in a match) doesn't require waiting through the whole match in real time.
+    // Works for any replay (?demo=true or an auto-replayed completed match).
+    const requestedStartAt = Number(new URLSearchParams(window.location.search).get('startAt'))
+    if (replayMode && Number.isFinite(requestedStartAt) && requestedStartAt > 0) {
+      resumeAt = requestedStartAt
+      try {
+        sessionStorage.removeItem(checkpointKey)
+      } catch {
+        // Ignore storage errors.
+      }
+    } else if (replayMode) {
       try {
         const raw = sessionStorage.getItem(checkpointKey)
         if (raw) {
@@ -517,6 +531,10 @@ function WatchContent() {
   const awayProb = currentOdds ? currentOdds.awayProb : 0.333
   const inReplay = isDemo || isCompletedPhase(activeFixture.phase)
   const inLive = isLivePhase(activeFixture.phase)
+  // Where to return after signing in from inside this page — without this,
+  // /auth always bounces back to a bare /watch, which re-picks a fixture from
+  // scratch and loses the exact match/mode the visitor was on.
+  const authReturnPath = isDemo ? '/watch?demo=true' : selectedMatchId ? `/watch?match=${selectedMatchId}` : '/watch'
 
   return (
     <div className={`relative ${mode === 'following' ? 'h-screen w-screen bg-black overflow-hidden' : 'min-h-screen bg-[#080808] pb-16'}`}>
@@ -560,7 +578,7 @@ function WatchContent() {
           <MatchPicker fixtures={fixtures} selectedMatchId={selectedMatchId} onSelect={handleSelectMatch} />
         )}
         <Link
-          href={user ? '/profile' : '/auth'}
+          href={user ? '/profile' : `/auth?next=${encodeURIComponent(authReturnPath)}`}
           className="shrink-0 pl-2 sm:pl-3 py-1.5 border-l border-white/10 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-[#f5c518] transition-colors"
         >
           {user ? 'Profile' : 'Sign in'}
@@ -588,6 +606,8 @@ function WatchContent() {
           latestOdds={currentOdds ?? null}
           updateCount={updateCount}
           isDemo={isDemo}
+          isSignedIn={!!user}
+          authReturnPath={authReturnPath}
           feedStatus={feedStatus}
           lastFeedAgeSeconds={lastFeedReceivedAt ? Math.max(0, Math.floor((Date.now() - lastFeedReceivedAt) / 1000)) : null}
         />
@@ -604,6 +624,8 @@ function WatchContent() {
           updateCount={updateCount}
           latestOdds={currentOdds ?? null}
           isDemo={isDemo}
+          isSignedIn={!!user}
+          authReturnPath={authReturnPath}
           feedStatus={feedStatus}
           lastFeedAgeSeconds={lastFeedReceivedAt ? Math.max(0, Math.floor((Date.now() - lastFeedReceivedAt) / 1000)) : null}
           activeShock={activeShock}

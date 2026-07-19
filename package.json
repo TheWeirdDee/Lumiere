@@ -20,6 +20,7 @@
     ,"test:telegram-code": "tsx scripts/test-telegram-code.ts"
     ,"test:fixture-coverage": "tsx --env-file=.env.local scripts/test-fixture-coverage.ts"
     ,"demo:telegram-shock": "tsx --env-file=.env.local scripts/demo-telegram-shock.ts"
+    ,"demo:timing": "tsx --env-file=.env.local scripts/demo-timing-scan.ts"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",

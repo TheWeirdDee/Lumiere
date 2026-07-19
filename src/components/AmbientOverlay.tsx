@@ -27,6 +27,10 @@ interface AmbientOverlayProps {
   updateCount: number
   latestOdds: OddsEvent | null
   isDemo: boolean
+  /** Real auth state — independent of isDemo, which only gates practice scoring. */
+  isSignedIn: boolean
+  /** Where to return after signing in from inside this overlay (preserves demo/match context). */
+  authReturnPath: string
   feedStatus: 'connecting' | 'live' | 'reconnecting' | 'stale' | 'complete'
   lastFeedAgeSeconds: number | null
   activeShock: OddsShock | null
@@ -49,6 +53,8 @@ export default function AmbientOverlay({
   updateCount,
   latestOdds,
   isDemo,
+  isSignedIn,
+  authReturnPath,
   feedStatus,
   lastFeedAgeSeconds,
   activeShock,
@@ -214,10 +220,10 @@ export default function AmbientOverlay({
             </p>
             <FollowFade shock={activeShock} latestOdds={latestOdds} isDemo={isDemo} />
             <a
-              href={isDemo ? '/auth' : `/build?${buildParams?.toString()}`}
+              href={isSignedIn ? `/build?${buildParams?.toString()}` : `/auth?next=${encodeURIComponent(authReturnPath)}`}
               className='mt-3 block w-full py-3 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-white font-display font-bold uppercase tracking-wider text-xs text-center transition-colors'
             >
-              {isDemo ? 'Sign in to build a code →' : 'Add to a verified code →'}
+              {isSignedIn ? 'Add to a verified code →' : 'Sign in to build a code →'}
             </a>
           </div>
         )}

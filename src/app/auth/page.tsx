@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { Suspense, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { getSupabaseBrowser } from '@/lib/supabase-browser'
 import { useAuthUser } from '@/lib/use-auth'
 import { LogoMark } from '@/components/Logo'
@@ -10,8 +10,16 @@ import { LogoMark } from '@/components/Logo'
 type Tab = 'telegram' | 'email'
 type EmailStep = 'enter-email' | 'enter-otp'
 
-export default function AuthPage() {
+/** Only ever return to a same-origin relative path — never trust `next` as an open redirect. */
+function safeNext(raw: string | null): string {
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return '/watch'
+  return raw
+}
+
+function AuthContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const next = safeNext(searchParams.get('next'))
   const { user, loading } = useAuthUser()
   const [tab, setTab] = useState<Tab>('telegram')
   const [telegramError, setTelegramError] = useState<string | null>(null)
@@ -24,15 +32,15 @@ export default function AuthPage() {
   const [emailError, setEmailError] = useState<string | null>(null)
   const [emailBusy, setEmailBusy] = useState(false)
 
-  // Already logged in — go straight to the app.
+  // Already logged in — go straight back to wherever they came from.
   useEffect(() => {
-    if (!loading && user) router.replace('/watch')
-  }, [loading, user, router])
+    if (!loading && user) router.replace(next)
+  }, [loading, user, router, next])
 
   const completeLogin = async (userId: string) => {
     const supabase = getSupabaseBrowser()
     const { data: existing } = await supabase.from('lumiere_users').select('username').eq('id', userId).maybeSingle()
-    router.push(existing?.username ? '/watch' : '/auth/username')
+    router.push(existing?.username ? next : `/auth/username?next=${encodeURIComponent(next)}`)
   }
 
   const prepareTelegramLogin = useCallback(async () => {
@@ -266,5 +274,19 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#080808] text-gray-400">
+          <div className="w-8 h-8 rounded-full border-2 border-[#f5c518]/25 border-t-[#f5c518] animate-spin" />
+        </div>
+      }
+    >
+      <AuthContent />
+    </Suspense>
   )
 }

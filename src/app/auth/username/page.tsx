@@ -1,23 +1,31 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { Suspense, useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { getSupabaseBrowser } from '@/lib/supabase-browser'
 import { useAuthUser } from '@/lib/use-auth'
 
 const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,20}$/
 
-export default function UsernamePage() {
+/** Only ever return to a same-origin relative path — never trust `next` as an open redirect. */
+function safeNext(raw: string | null): string {
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return '/watch'
+  return raw
+}
+
+function UsernameContent() {
   const { user, loading } = useAuthUser()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const next = safeNext(searchParams.get('next'))
 
   const [username, setUsername] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    if (!loading && !user) router.replace('/auth')
-  }, [loading, user, router])
+    if (!loading && !user) router.replace(`/auth?next=${encodeURIComponent(next)}`)
+  }, [loading, user, router, next])
 
   const isValid = USERNAME_PATTERN.test(username)
 
@@ -51,7 +59,7 @@ export default function UsernamePage() {
       return
     }
 
-    router.push('/watch')
+    router.push(next)
   }
 
   if (loading || !user) {
@@ -100,5 +108,19 @@ export default function UsernamePage() {
         </button>
       </form>
     </div>
+  )
+}
+
+export default function UsernamePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[#080808] text-gray-400">
+          <div className="w-8 h-8 rounded-full border-2 border-[#f5c518]/25 border-t-[#f5c518] animate-spin" />
+        </div>
+      }
+    >
+      <UsernameContent />
+    </Suspense>
   )
 }
