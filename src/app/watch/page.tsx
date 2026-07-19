@@ -586,7 +586,15 @@ function WatchContent() {
   const displaySliderMinute = sliderMinute ?? currentVirtualMinute
 
   return (
-    <div className={`relative ${mode === 'following' ? 'h-screen w-screen bg-black overflow-hidden' : 'min-h-screen bg-[#080808] pb-16'}`}>
+    <div
+      className={`relative ${
+        mode === 'following'
+          ? 'h-screen w-screen bg-black overflow-hidden'
+          : inReplay
+            ? 'min-h-screen bg-[#080808] pb-40 sm:pb-28' // extra clearance so the fixed scrubber bar never covers the last card
+            : 'min-h-screen bg-[#080808] pb-16'
+      }`}
+    >
       {/* Universal Mode Toggle Bar — capped to the viewport; overflow scrolls
           horizontally inside the pill instead of clipping off-screen on phones. */}
       <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 sm:gap-2 max-w-[calc(100vw-16px)] overflow-x-auto scrollbar-none whitespace-nowrap bg-gray-950/80 backdrop-blur-md border border-white/15 px-2 sm:px-3 py-1.5 rounded-full shadow-2xl">
