@@ -257,6 +257,7 @@ export default function HomePage() {
             <a href="#how" className="hover:text-white transition-colors">How it works</a>
             <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
             <Link href="/guide" className="hover:text-white transition-colors">Guide</Link>
+            <Link href="/docs" className="hover:text-white transition-colors">Docs</Link>
           </nav>
           <div className="flex items-center gap-4 shrink-0">
             <Link
@@ -910,6 +911,7 @@ export default function HomePage() {
           <div className="flex items-center flex-wrap justify-center gap-6 text-[11px] font-bold uppercase tracking-widest text-gray-400">
             <Link href="/watch?demo=true" className="hover:text-white transition-colors">Live demo</Link>
             <Link href="/guide" className="hover:text-white transition-colors">Guide</Link>
+            <Link href="/docs" className="hover:text-white transition-colors">Docs</Link>
             <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
             <a href="https://github.com/TheWeirdDee/Lumiere" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
               GitHub

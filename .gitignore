@@ -42,3 +42,9 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# hackathon submission notes — never commit, contains internal demo/scoring notes
+submission.md
+
+# local TxLINE replay cache — regeneratable, was never tracked
+/data/replay-cache/
