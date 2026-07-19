@@ -38,6 +38,9 @@ interface AmbientOverlayProps {
   lastFeedAgeSeconds: number | null
   activeShock: OddsShock | null
   onDismissShock: () => void
+  /** Play/pause + seek scrubber content, rendered in-flow (never fixed) so it
+   *  can't overlap content that scrolls underneath it — null outside replay. */
+  transportControls?: React.ReactNode
 }
 
 function isCompletedPhase(phase: Fixture['phase']): boolean {
@@ -63,6 +66,7 @@ export default function AmbientOverlay({
   lastFeedAgeSeconds,
   activeShock,
   onDismissShock,
+  transportControls,
 }: AmbientOverlayProps) {
   const team = activeShock ? (activeShock.affectedTeam === 'home' ? activeShock.homeTeam : activeShock.awayTeam) : null
   const buildParams = activeShock ? new URLSearchParams({ matchId: activeShock.matchId, team: activeShock.affectedTeam }) : null
@@ -124,6 +128,14 @@ export default function AmbientOverlay({
             {tagline.text}
           </p>
         )}
+        {/* Replay transport controls — in-flow, never fixed, so it can never
+            overlap the market pulse card or anything else below it. */}
+        {transportControls && (
+          <div className="mt-5 flex items-center gap-3 mx-auto max-w-md bg-gray-950/85 border border-white/15 px-4 py-2.5 rounded-full shadow-xl">
+            {transportControls}
+          </div>
+        )}
+
         {!hasOdds && (
           <p className="mt-4 text-center text-xs text-gray-500 leading-relaxed">
             {isCompletedPhase(activeFixture.phase)

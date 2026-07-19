@@ -585,16 +585,46 @@ function WatchContent() {
   )
   const displaySliderMinute = sliderMinute ?? currentVirtualMinute
 
+  const transportControlsInner = (
+    <>
+      <button
+        onClick={() => setIsPaused((p) => !p)}
+        aria-label={isPaused ? 'Play replay' : 'Pause replay'}
+        className="shrink-0 w-8 h-8 rounded-full bg-[#f5c518] text-black flex items-center justify-center hover:bg-[#e2b514] transition-colors active:scale-95"
+      >
+        {isPaused ? (
+          <svg className="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        ) : (
+          <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
+          </svg>
+        )}
+      </button>
+      <input
+        type="range"
+        min={0}
+        max={scrubberMaxMinute}
+        value={displaySliderMinute}
+        onChange={(e) => setSliderMinute(Number(e.currentTarget.value))}
+        onMouseUp={() => {
+          if (sliderMinute !== null) requestSeek(scrubberBaseTs + sliderMinute * 60_000)
+        }}
+        onTouchEnd={() => {
+          if (sliderMinute !== null) requestSeek(scrubberBaseTs + sliderMinute * 60_000)
+        }}
+        aria-label="Seek to match minute"
+        className="flex-1 h-1.5 rounded-lg bg-gray-800 accent-[#f5c518] cursor-pointer outline-none"
+      />
+      <span className="shrink-0 font-mono text-[11px] font-bold text-gray-300 w-9 text-right" suppressHydrationWarning>
+        {displaySliderMinute < 5 ? 'KO' : `${displaySliderMinute - 5}'`}
+      </span>
+    </>
+  )
+
   return (
-    <div
-      className={`relative ${
-        mode === 'following'
-          ? 'h-screen w-screen bg-black overflow-hidden'
-          : inReplay
-            ? 'min-h-screen bg-[#080808] pb-40 sm:pb-28' // extra clearance so the fixed scrubber bar never covers the last card
-            : 'min-h-screen bg-[#080808] pb-16'
-      }`}
-    >
+    <div className={`relative ${mode === 'following' ? 'h-screen w-screen bg-black overflow-hidden' : 'min-h-screen bg-[#080808] pb-16'}`}>
       {/* Universal Mode Toggle Bar — capped to the viewport; overflow scrolls
           horizontally inside the pill instead of clipping off-screen on phones. */}
       <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-1 sm:gap-2 max-w-[calc(100vw-16px)] overflow-x-auto scrollbar-none whitespace-nowrap bg-gray-950/80 backdrop-blur-md border border-white/15 px-2 sm:px-3 py-1.5 rounded-full shadow-2xl">
@@ -648,51 +678,22 @@ function WatchContent() {
         </Link>
       </div>
 
-      {/* Replay transport controls — play/pause + scrub. Never shown for a
-          genuinely live match; only demo mode or an auto-replayed completed
-          fixture. Positioned above SwipeFeed's own bottom swipe-hint so the
-          two never overlap. */}
-      {inReplay && (
-        <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 w-[calc(100vw-16px)] max-w-md bg-gray-950/85 backdrop-blur-md border border-white/15 px-4 py-2.5 rounded-full shadow-2xl">
-          <button
-            onClick={() => setIsPaused((p) => !p)}
-            aria-label={isPaused ? 'Play replay' : 'Pause replay'}
-            className="shrink-0 w-8 h-8 rounded-full bg-[#f5c518] text-black flex items-center justify-center hover:bg-[#e2b514] transition-colors active:scale-95"
-          >
-            {isPaused ? (
-              <svg className="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            ) : (
-              <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
-              </svg>
-            )}
-          </button>
-          <input
-            type="range"
-            min={0}
-            max={scrubberMaxMinute}
-            value={displaySliderMinute}
-            onChange={(e) => setSliderMinute(Number(e.currentTarget.value))}
-            onMouseUp={() => {
-              if (sliderMinute !== null) requestSeek(scrubberBaseTs + sliderMinute * 60_000)
-            }}
-            onTouchEnd={() => {
-              if (sliderMinute !== null) requestSeek(scrubberBaseTs + sliderMinute * 60_000)
-            }}
-            aria-label="Seek to match minute"
-            className="flex-1 h-1.5 rounded-lg bg-gray-800 accent-[#f5c518] cursor-pointer outline-none"
-          />
-          <span className="shrink-0 font-mono text-[11px] font-bold text-gray-300 w-9 text-right" suppressHydrationWarning>
-            {displaySliderMinute < 5 ? 'KO' : `${displaySliderMinute - 5}'`}
-          </span>
-        </div>
-      )}
-
       {streamError && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-40 max-w-md rounded-full border border-rose-500/30 bg-rose-950/90 px-4 py-2 text-center text-[11px] text-rose-200 shadow-xl">
           {streamError}
+        </div>
+      )}
+
+      {/* Following Mode: the feed is a fixed h-screen snap-scroll stack, so a
+          fixed overlay is the only option — it's positioned above SwipeFeed's
+          own bottom swipe-hint so the two don't collide. Watching Mode is a
+          normal scrolling page instead, where a fixed bar would sit on top of
+          whatever content happens to scroll underneath it at any given
+          position — so there it's rendered in-flow inside AmbientOverlay
+          instead (see transportControls below), never fixed. */}
+      {inReplay && mode === 'following' && (
+        <div className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 w-[calc(100vw-16px)] max-w-md bg-gray-950/85 backdrop-blur-md border border-white/15 px-4 py-2.5 rounded-full shadow-2xl">
+          {transportControlsInner}
         </div>
       )}
 
@@ -731,6 +732,7 @@ function WatchContent() {
           lastFeedAgeSeconds={lastFeedReceivedAt ? Math.max(0, Math.floor((Date.now() - lastFeedReceivedAt) / 1000)) : null}
           activeShock={activeShock}
           onDismissShock={() => setActiveShock(null)}
+          transportControls={inReplay ? transportControlsInner : null}
         />
       )}
     </div>
