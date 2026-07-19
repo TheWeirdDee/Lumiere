@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { Fixture, GamePhase } from '@/lib/txline/types'
 import TeamFlag from './TeamFlag'
 
@@ -18,13 +19,44 @@ interface MatchPickerProps {
   onSelect: (fixture: Fixture) => void
 }
 
+interface Coords {
+  top: number
+  left: number
+  width: number
+}
+
 export default function MatchPicker({ fixtures, selectedMatchId, onSelect }: MatchPickerProps) {
   const [open, setOpen] = useState(false)
-  const rootRef = useRef<HTMLDivElement>(null)
+  const [coords, setCoords] = useState<Coords | null>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // The nav pill scrolls horizontally on phones (overflow-x-auto), which per
+  // the CSS spec also forces overflow-y to auto — an absolutely positioned
+  // dropdown nested inside gets clipped to the pill instead of floating below
+  // it. Rendering into a body-level portal, positioned from the button's own
+  // bounding rect, sidesteps any ancestor's overflow/clip context entirely.
+  const reposition = () => {
+    const rect = buttonRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const width = Math.min(320, window.innerWidth - 16)
+    const left = Math.min(Math.max(8, rect.right - width), window.innerWidth - width - 8)
+    setCoords({ top: rect.bottom + 8, left, width })
+  }
+
+  useEffect(() => {
+    if (!open) return
+    reposition()
+    window.addEventListener('resize', reposition)
+    return () => window.removeEventListener('resize', reposition)
+  }, [open])
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      if (buttonRef.current?.contains(target)) return
+      if (dropdownRef.current?.contains(target)) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', onClickOutside)
     return () => document.removeEventListener('mousedown', onClickOutside)
@@ -34,8 +66,9 @@ export default function MatchPicker({ fixtures, selectedMatchId, onSelect }: Mat
   if (fixtures.length === 0 || !selected) return null
 
   return (
-    <div ref={rootRef} className="relative">
+    <>
       <button
+        ref={buttonRef}
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider text-gray-300 hover:text-white border-l border-white/10 transition-colors max-w-[210px]"
         aria-haspopup="listbox"
@@ -53,8 +86,13 @@ export default function MatchPicker({ fixtures, selectedMatchId, onSelect }: Mat
         </svg>
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 max-h-[60vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#0f0f0f]/95 backdrop-blur-md shadow-2xl p-2 z-50" role="listbox">
+      {open && coords && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={dropdownRef}
+          style={{ position: 'fixed', top: coords.top, left: coords.left, width: coords.width }}
+          className="max-h-[60vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#0f0f0f]/95 backdrop-blur-md shadow-2xl p-2 z-[100]"
+          role="listbox"
+        >
           {fixtures.map((f) => {
             const live = isLive(f.phase)
             const completed = isCompleted(f.phase)
@@ -99,8 +137,9 @@ export default function MatchPicker({ fixtures, selectedMatchId, onSelect }: Mat
               </button>
             )
           })}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   )
 }
